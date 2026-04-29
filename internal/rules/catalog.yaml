@@ -1,0 +1,418 @@
+# reclaim rule catalog
+# Each rule defines a cleanable target with safety information.
+#
+# safety: safe         - regenerates automatically, no impact
+#         confirm      - safe but worth confirming (e.g. profile data)
+#         dangerous    - irreversible, requires explicit opt-in
+
+categories:
+  - id: build-caches
+    name: Build caches
+    description: Compiler/builder caches that regenerate on next build
+
+  - id: package-caches
+    name: Package manager caches
+    description: Downloaded package archives, regenerate on next install
+
+  - id: project-caches
+    name: Project build artifacts
+    description: Per-project build output and dependency folders
+
+  - id: ide-caches
+    name: IDE & editor caches
+    description: Build output and indexes from IDEs (Xcode, VS Code, JetBrains)
+
+  - id: container-caches
+    name: Container runtimes
+    description: Docker, Podman virtual disks and images
+
+  - id: browser-caches
+    name: Browser caches
+    description: Browser asset caches (does not log you out)
+
+  - id: app-data
+    name: App data & profiles
+    description: Application support folders — review before deleting
+
+  - id: system-caches
+    name: System caches
+    description: Various macOS and tool caches
+
+rules:
+  # ---------- Build caches ----------
+  - id: gradle-cache
+    category: build-caches
+    paths:
+      - ~/.gradle/caches
+      - ~/.gradle/wrapper
+      - ~/.gradle/daemon
+    safety: safe
+    regenerates: true
+    description: Gradle build cache, wrapper, and daemon. Regenerates on next Android/Gradle build.
+    detect: dir-exists
+
+  - id: maven-cache
+    category: build-caches
+    paths:
+      - ~/.m2/repository
+    safety: safe
+    regenerates: true
+    description: Maven local repository. Regenerates on next Maven build.
+    detect: dir-exists
+
+  - id: go-build-cache
+    category: build-caches
+    paths:
+      - ~/Library/Caches/go-build
+    safety: safe
+    regenerates: true
+    description: Go build cache. Regenerates on next go build.
+    detect: dir-exists
+
+  - id: rustup
+    category: build-caches
+    paths:
+      - ~/.rustup
+    safety: confirm
+    regenerates: false
+    description: Rust toolchains. Reinstall via rustup if you use Rust.
+    detect: dir-exists
+
+  - id: cargo-cache
+    category: build-caches
+    paths:
+      - ~/.cargo/registry
+      - ~/.cargo/git
+    safety: safe
+    regenerates: true
+    description: Cargo registry/git caches. Regenerates on next cargo build.
+    detect: dir-exists
+
+  # ---------- Package manager caches ----------
+  - id: npm-cache
+    category: package-caches
+    paths:
+      - ~/.npm/_cacache
+    safety: safe
+    regenerates: true
+    cmd: npm cache clean --force
+    description: npm package cache. Regenerates on next npm install.
+    detect: dir-exists
+
+  - id: yarn-cache
+    category: package-caches
+    paths:
+      - ~/.yarn/cache
+      - ~/Library/Caches/Yarn
+    safety: safe
+    regenerates: true
+    description: Yarn package cache.
+    detect: dir-exists
+
+  - id: pnpm-store
+    category: package-caches
+    paths:
+      - ~/.pnpm-store
+      - ~/Library/pnpm/store
+    safety: safe
+    regenerates: true
+    description: pnpm content-addressable store.
+    detect: dir-exists
+
+  - id: pip-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/pip
+      - ~/.cache/pip
+    safety: safe
+    regenerates: true
+    description: pip download cache. Regenerates on next pip install.
+    detect: dir-exists
+
+  - id: uv-cache
+    category: package-caches
+    paths:
+      - ~/.cache/uv
+      - ~/Library/Caches/uv
+    safety: safe
+    regenerates: true
+    description: uv (modern pip) cache.
+    detect: dir-exists
+
+  - id: poetry-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/pypoetry
+      - ~/.cache/pypoetry
+    safety: safe
+    regenerates: true
+    description: Poetry package cache.
+    detect: dir-exists
+
+  - id: pub-cache
+    category: package-caches
+    paths:
+      - ~/.pub-cache
+    safety: safe
+    regenerates: true
+    cmd: dart pub cache clean
+    description: Dart/Flutter package cache. Regenerates on next pub get.
+    detect: dir-exists
+
+  - id: cocoapods-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/CocoaPods
+      - ~/.cocoapods
+    safety: safe
+    regenerates: true
+    description: CocoaPods dependency cache.
+    detect: dir-exists
+
+  - id: homebrew-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/Homebrew
+    safety: safe
+    regenerates: true
+    cmd: brew cleanup --prune=all
+    description: Homebrew downloads cache. Cleaned via brew cleanup.
+    detect: dir-exists
+
+  # ---------- Project caches (scanned dynamically) ----------
+  - id: project-node-modules
+    category: project-caches
+    scan_for: node_modules
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 5
+    safety: confirm
+    regenerates: true
+    description: node_modules folders in projects (regenerates via npm/yarn/pnpm install)
+    detect: scan
+    activity_check: true   # check git mtime to flag stale projects
+
+  - id: project-next
+    category: project-caches
+    scan_for: .next
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 5
+    safety: safe
+    regenerates: true
+    description: Next.js build output (.next folders)
+    detect: scan
+
+  - id: project-open-next
+    category: project-caches
+    scan_for: .open-next
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 5
+    safety: safe
+    regenerates: true
+    description: OpenNext build output (.open-next folders)
+    detect: scan
+
+  - id: project-dart-tool
+    category: project-caches
+    scan_for: .dart_tool
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 5
+    safety: safe
+    regenerates: true
+    description: Flutter/Dart build cache (.dart_tool folders)
+    detect: scan
+
+  - id: project-pods
+    category: project-caches
+    scan_for: Pods
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 6
+    path_contains: ios
+    safety: safe
+    regenerates: true
+    description: CocoaPods install (ios/Pods folders)
+    detect: scan
+
+  - id: project-android-gradle
+    category: project-caches
+    scan_for: .gradle
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 5
+    path_contains: android
+    safety: safe
+    regenerates: true
+    description: Per-project Gradle cache (android/.gradle)
+    detect: scan
+
+  - id: python-pycache
+    category: project-caches
+    scan_for: __pycache__
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 8
+    safety: safe
+    regenerates: true
+    description: Python bytecode cache directories
+    detect: scan
+
+  - id: python-venv
+    category: project-caches
+    scan_for: ".venv|venv"
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 4
+    safety: confirm
+    regenerates: true
+    description: Python virtual environments
+    detect: scan
+
+  - id: rust-target
+    category: project-caches
+    scan_for: target
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 4
+    requires_sibling: Cargo.toml
+    safety: safe
+    regenerates: true
+    description: Rust build output (target/) — only deleted next to Cargo.toml
+    detect: scan
+
+  # ---------- IDE / Xcode ----------
+  - id: xcode-derived-data
+    category: ide-caches
+    paths:
+      - ~/Library/Developer/Xcode/DerivedData
+    safety: safe
+    regenerates: true
+    description: Xcode build cache. Regenerates on next build (cold build is slower).
+    detect: dir-exists
+
+  - id: xcode-device-support
+    category: ide-caches
+    paths:
+      - ~/Library/Developer/Xcode/iOS DeviceSupport
+      - ~/Library/Developer/Xcode/watchOS DeviceSupport
+      - ~/Library/Developer/Xcode/tvOS DeviceSupport
+    safety: safe
+    regenerates: true
+    description: Xcode device debug symbols. Re-downloaded when you connect a device.
+    detect: dir-exists
+
+  - id: xcode-archives
+    category: ide-caches
+    paths:
+      - ~/Library/Developer/Xcode/Archives
+    safety: confirm
+    regenerates: false
+    description: Xcode build archives (used for App Store submission). Don't delete recent ones.
+    detect: dir-exists
+
+  - id: ios-simulators-unavailable
+    category: ide-caches
+    cmd: xcrun simctl delete unavailable
+    safety: safe
+    description: Remove iOS simulators left behind from old Xcode versions.
+    detect: command
+
+  - id: vscode-extension-cache
+    category: ide-caches
+    paths:
+      - ~/Library/Application Support/Code/CachedExtensionVSIXs
+      - ~/Library/Application Support/Code/CachedData
+    safety: safe
+    regenerates: true
+    description: VS Code extension install cache.
+    detect: dir-exists
+
+  - id: jetbrains-caches
+    category: ide-caches
+    paths:
+      - ~/Library/Caches/JetBrains
+    safety: safe
+    regenerates: true
+    description: JetBrains IDEs (IntelliJ, WebStorm, etc.) cache.
+    detect: dir-exists
+
+  # ---------- Containers ----------
+  - id: docker-vm
+    category: container-caches
+    paths:
+      - ~/Library/Containers/com.docker.docker/Data/vms
+    safety: confirm
+    regenerates: true
+    process_check: Docker
+    description: Docker Desktop virtual disk (images, containers, volumes). Quit Docker before deleting.
+    detect: dir-exists
+
+  # ---------- Browsers ----------
+  - id: chrome-cache
+    category: browser-caches
+    paths:
+      - ~/Library/Caches/Google
+    safety: safe
+    regenerates: true
+    description: Chrome cache (asset cache only — does NOT log you out)
+    detect: dir-exists
+
+  - id: arc-cache
+    category: browser-caches
+    paths:
+      - ~/Library/Caches/Arc
+    safety: safe
+    regenerates: true
+    description: Arc browser cache
+    detect: dir-exists
+
+  # ---------- AI / ML ----------
+  - id: huggingface-cache
+    category: package-caches
+    paths:
+      - ~/.cache/huggingface
+    safety: safe
+    regenerates: true
+    description: Hugging Face downloaded models (large — re-downloaded on demand)
+    detect: dir-exists
+
+  - id: ollama-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/ollama
+    safety: confirm
+    regenerates: true
+    description: Ollama model cache (re-downloaded on next pull)
+    detect: dir-exists
+
+  - id: torch-cache
+    category: package-caches
+    paths:
+      - ~/.cache/torch
+    safety: safe
+    regenerates: true
+    description: PyTorch model cache
+    detect: dir-exists
+
+  # ---------- System / misc ----------
+  - id: trash
+    category: system-caches
+    paths:
+      - ~/.Trash
+    safety: confirm
+    regenerates: false
+    description: Items in Trash (permanently deleted)
+    detect: dir-exists
+
+  - id: puppeteer-cache
+    category: package-caches
+    paths:
+      - ~/.cache/puppeteer
+    safety: safe
+    regenerates: true
+    description: Puppeteer's bundled Chromium downloads
+    detect: dir-exists
+
+  - id: playwright-cache
+    category: package-caches
+    paths:
+      - ~/Library/Caches/ms-playwright
+      - ~/Library/Caches/ms-playwright-go
+    safety: safe
+    regenerates: true
+    description: Playwright browser binaries
+    detect: dir-exists

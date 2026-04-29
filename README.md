@@ -172,15 +172,19 @@ Rebuild with `go build` and run.
 
 ## Roadmap
 
-- [x] Interactive TUI with checkboxes and category groups
-- [x] Activity-aware project staleness detection
-- [x] Run history / audit log
-- [x] Single static binary distribution
-- [ ] Plugin / external rule files (`~/.reclaim/rules.d/*.yaml`)
-- [ ] Free space delta in summary (before/after `df -h`)
-- [ ] launchd integration for scheduled cleanups
-- [ ] Linux-specific rule pack (XDG cache dirs)
-- [ ] `reclaim undo` (restore from `~/.Trash` if items were trashed not deleted)
+The full roadmap, gap analysis by stack (Flutter, RN, Node, Python, etc.),
+and tentative release plan lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+Headline items for the next release (v0.2):
+
+- fvm SDK versions and per-version Xcode simulator runtime cleanup (the
+  two biggest single wins on a Flutter/iOS dev's machine)
+- Bun, Turborepo, Cypress, Metro / Expo
+- conda environments, pyenv versions, NuGet packages
+- Free disk space delta in the summary
+
+After that: per-project view in the TUI, `--trash` (soft delete), preset
+profiles, `reclaim doctor`, external rule files. See the roadmap for details.
 
 ---
 

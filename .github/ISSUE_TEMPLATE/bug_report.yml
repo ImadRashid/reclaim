@@ -1,0 +1,75 @@
+name: 🐛 Bug report
+description: Report something that doesn't work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill out as much as you
+        can — the more detail, the faster we can fix it.
+
+        **If reclaim deleted something it shouldn't have**, please mark the
+        severity below as "critical" and include the relevant lines from
+        `~/.reclaim/logs/YYYY-MM-DD.jsonl`.
+
+  - type: input
+    id: version
+    attributes:
+      label: reclaim version
+      description: Output of `reclaim --version`
+      placeholder: "reclaim 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: Output of `sw_vers`
+      placeholder: "macOS 26.4 (Tahoe)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - low — cosmetic / nice to have
+        - medium — feature broken but workaround exists
+        - high — feature broken with no workaround
+        - critical — reclaim deleted something it shouldn't have
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: "reclaim --apply --category build-caches"
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Paste the full output, including any error messages.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log entries (only if reclaim deleted something unexpectedly)
+      description: Relevant lines from `~/.reclaim/logs/YYYY-MM-DD.jsonl`
+      render: json

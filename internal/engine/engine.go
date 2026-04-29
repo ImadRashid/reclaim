@@ -55,6 +55,15 @@ func Apply(hits []scanner.Hit, ruleByID map[string]rules.Rule, onProgress func(s
 		if h.Path == "" {
 			continue
 		}
+		if err := CheckPathSafe(h.Path); err != nil {
+			results = append(results, Result{
+				RuleID:  h.RuleID,
+				Path:    h.Path,
+				Skipped: true,
+				Reason:  fmt.Sprintf("safety check: %v", err),
+			})
+			continue
+		}
 		size := h.Size
 		if err := os.RemoveAll(h.Path); err != nil {
 			results = append(results, Result{RuleID: h.RuleID, Path: h.Path, Err: err})

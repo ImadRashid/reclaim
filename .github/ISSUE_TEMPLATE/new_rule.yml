@@ -1,0 +1,57 @@
+name: 🧹 New cleanup rule
+description: Suggest a cache, build artifact, or other directory reclaim should know about
+labels: ["new-rule"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new rule! These are the most common contributions.
+        If you can, also open a PR with the YAML — see
+        [CONTRIBUTING.md → Adding a cleanup rule](../blob/main/CONTRIBUTING.md#adding-a-cleanup-rule-no-code-required).
+
+  - type: input
+    id: tool
+    attributes:
+      label: What tool / framework writes this?
+      placeholder: "Bun, Deno, Skaffold, …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: paths
+    attributes:
+      label: Path(s) to clean
+      description: Where does it live on disk? Include `~` if relative to home.
+      placeholder: "~/Library/Caches/foo"
+    validations:
+      required: true
+
+  - type: textarea
+    id: regenerates
+    attributes:
+      label: How does it regenerate?
+      description: What command rebuilds it? How long does that take?
+      placeholder: "Auto on next `bun install` (~30s)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: safety
+    attributes:
+      label: Safety tier
+      description: |
+        - **safe** — regenerates with zero user-visible loss
+        - **confirm** — should be reviewed first
+        - **dangerous** — loses real data
+      options:
+        - safe
+        - confirm
+        - dangerous
+    validations:
+      required: true
+
+  - type: textarea
+    id: docs
+    attributes:
+      label: Source / documentation
+      description: Link to the tool's docs or source code that confirms this is the right path and that it's safe to delete.

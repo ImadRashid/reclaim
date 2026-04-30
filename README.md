@@ -71,51 +71,70 @@ To upgrade later: `brew upgrade reclaim`. To uninstall: `brew uninstall reclaim`
 > official `homebrew-core` registry, which has acceptance criteria like a
 > minimum number of stars. `reclaim` will apply once it has real adoption.
 
-### Direct download
+### Direct download (prebuilt binary, no build step)
 
-Grab a prebuilt binary from the
-[releases page](https://github.com/ImadRashid/reclaim/releases) — pick the
-archive that matches your machine.
+Each release ships a single ready-to-run binary — no compile, no runtime
+needed. Pick the archive for your machine and copy the `reclaim` file onto
+your `$PATH`. One-line installer:
 
 ```sh
 # Apple Silicon (M1/M2/M3/M4)
-curl -L -o reclaim.tar.gz \
-  https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_arm64.tar.gz
-tar -xzf reclaim.tar.gz
-sudo mv reclaim_v0.1.1_darwin_arm64/reclaim /usr/local/bin/reclaim
-sudo chmod +x /usr/local/bin/reclaim
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_arm64.tar.gz \
+  | tar -xz \
+  && sudo install -m 0755 reclaim_v0.1.1_darwin_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.1.1_darwin_arm64
 
 # Intel Mac
-curl -L -o reclaim.tar.gz \
-  https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_amd64.tar.gz
-tar -xzf reclaim.tar.gz
-sudo mv reclaim_v0.1.1_darwin_amd64/reclaim /usr/local/bin/reclaim
-sudo chmod +x /usr/local/bin/reclaim
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_amd64.tar.gz \
+  | tar -xz \
+  && sudo install -m 0755 reclaim_v0.1.1_darwin_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.1.1_darwin_amd64
 
 # Linux ARM64
-curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_arm64.tar.gz | tar -xz
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_arm64.tar.gz \
+  | tar -xz \
+  && sudo install -m 0755 reclaim_v0.1.1_linux_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.1.1_linux_arm64
 
 # Linux AMD64
-curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_amd64.tar.gz | tar -xz
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_amd64.tar.gz \
+  | tar -xz \
+  && sudo install -m 0755 reclaim_v0.1.1_linux_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.1.1_linux_amd64
 ```
 
+Then run `reclaim` from anywhere.
+
+Prefer to grab the file by hand? Open the
+[releases page](https://github.com/ImadRashid/reclaim/releases),
+download the archive for your platform, double-click to extract, and drag the
+`reclaim` binary into a PATH directory like `/usr/local/bin/`.
+
 > **Gatekeeper note (macOS):** the first time you run a directly-downloaded
-> binary, macOS may say *"reclaim cannot be opened because the developer cannot
-> be verified."* Either:
-> 1. Right-click the binary in Finder → Open (one-time approval), or
-> 2. From a terminal: `xattr -d com.apple.quarantine /usr/local/bin/reclaim`
+> binary, macOS may say *"reclaim cannot be opened because the developer
+> cannot be verified."* This is normal for unsigned binaries. Two ways to
+> bypass it:
+>
+> 1. Right-click `reclaim` in Finder → **Open** (one-time approval), or
+> 2. Run `xattr -d com.apple.quarantine /usr/local/bin/reclaim` in a terminal.
 >
 > Homebrew installs don't trigger this because brew strips the quarantine
 > attribute automatically.
 
-Each release also publishes `.sha256` files. Verify a download with:
+#### Verify the download (optional)
+
+Each release also publishes `.sha256` sidecar files. To verify integrity:
 
 ```sh
 shasum -a 256 reclaim_v0.1.1_darwin_arm64.tar.gz
 # Compare against the value in reclaim_v0.1.1_darwin_arm64.tar.gz.sha256
 ```
 
-### From source
+### Build from source (only if you want to)
+
+You don't need to build from source to use `reclaim` — the prebuilt binary
+above is the same thing you'd produce. This path is for contributors and for
+users who'd rather compile their own.
 
 ```sh
 git clone https://github.com/ImadRashid/reclaim

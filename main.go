@@ -2,7 +2,8 @@
 //
 // Usage:
 //
-//	reclaim                        # interactive TUI (scan + pick + apply)
+//	reclaim                        # welcome menu (interactive entry point)
+//	reclaim --pick                 # skip welcome, go straight to picker TUI
 //	reclaim --plain                # plain-text scan (no TUI)
 //	reclaim --apply                # apply directly without TUI (uses safe defaults)
 //	reclaim --apply -c <category>  # restrict apply to one category
@@ -27,14 +28,16 @@ import (
 	"github.com/ImadRashid/reclaim/internal/ui"
 )
 
-const version = "0.1.0"
+// version is overridden at build time via -ldflags "-X main.version=...".
+var version = "0.1.1"
 
 type opts struct {
-	apply      bool
-	plain      bool
-	category   string
-	wantHelp   bool
-	wantVer    bool
+	apply     bool
+	plain     bool
+	pick      bool
+	category  string
+	wantHelp  bool
+	wantVer   bool
 }
 
 func main() {
@@ -54,35 +57,94 @@ func main() {
 	}
 	ruleByID := engine.RuleMap(cat)
 
-	hits := runScan(cat)
-
-	// Filter by category if requested.
-	if o.category != "" {
-		hits = filterByCategory(hits, ruleByID, o.category)
+	// Mode dispatch:
+	//   --plain                  → plain text report and exit
+	//   --apply                  → non-interactive apply (single y/N)
+	//   --pick                   → straight into the picker TUI (skip welcome)
+	//   default (no flags)       → welcome menu
+	switch {
+	case o.plain:
+		runPlain(cat, ruleByID, o.category)
+	case o.apply:
+		runApply(cat, ruleByID, o.category)
+	case o.pick:
+		runPicker(cat, ruleByID, o.category)
+	default:
+		runWelcome(cat, ruleByID)
 	}
+}
 
+func parseArgs(args []string) opts {
+	var o opts
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--apply", "-a":
+			o.apply = true
+		case "--plain", "-p":
+			o.plain = true
+		case "--pick":
+			o.pick = true
+		case "--category", "-c":
+			if i+1 < len(args) {
+				o.category = args[i+1]
+				i++
+			}
+		case "--version", "-v":
+			o.wantVer = true
+		case "--help", "-h":
+			o.wantHelp = true
+		}
+	}
+	return o
+}
+
+// runWelcome shows the welcome menu and dispatches to the chosen action.
+// Loops back to the menu after one-shot actions (about, last log) so the user
+// can pick something else without re-launching.
+func runWelcome(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
+	for {
+		w := ui.NewWelcome(cat)
+		final, err := tea.NewProgram(w, tea.WithAltScreen()).Run()
+		if err != nil {
+			die("welcome: %v", err)
+		}
+		wm, ok := final.(ui.WelcomeModel)
+		if !ok {
+			return
+		}
+		switch wm.Chosen() {
+		case ui.ChoiceNone:
+			return
+		case ui.ChoiceScanAndPick:
+			runPicker(cat, ruleByID, "")
+			return
+		case ui.ChoiceQuickCleanSafe:
+			runApplySafeOnly(cat, ruleByID)
+			return
+		case ui.ChoiceBrowseByCategory:
+			runPicker(cat, ruleByID, wm.PickedCategory())
+			return
+		case ui.ChoiceLastLog:
+			ui.PrintLastLog()
+			waitForKey()
+			continue
+		case ui.ChoiceAbout:
+			ui.PrintAbout(version)
+			waitForKey()
+			continue
+		}
+	}
+}
+
+func runPicker(cat *rules.Catalog, ruleByID map[string]rules.Rule, category string) {
+	hits := runScan(cat)
+	if category != "" {
+		hits = filterByCategory(hits, ruleByID, category)
+	}
 	if len(hits) == 0 {
 		fmt.Println("Nothing to clean. Your system is tidy. ✨")
 		return
 	}
-
-	// Mode selection:
-	//   --plain      => text report only
-	//   --apply      => non-interactive apply (uses safe defaults: safe + confirm)
-	//   default      => TUI
-	if o.plain {
-		printReport(cat, hits, ruleByID)
-		fmt.Println("\nRun without --plain for the interactive picker, or --apply to delete safely.")
-		return
-	}
-
-	if o.apply {
-		// Non-interactive apply: take all safe + confirm hits.
-		runNonInteractiveApply(hits, ruleByID)
-		return
-	}
-
-	// Default: interactive TUI.
 	model := ui.New(cat, hits)
 	final, err := tea.NewProgram(model, tea.WithAltScreen()).Run()
 	if err != nil {
@@ -101,26 +163,40 @@ func main() {
 	applyAndReport(selected, ruleByID)
 }
 
-func parseArgs(args []string) opts {
-	var o opts
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--apply", "-a":
-			o.apply = true
-		case "--plain", "-p":
-			o.plain = true
-		case "--category", "-c":
-			if i+1 < len(args) {
-				o.category = args[i+1]
-				i++
-			}
-		case "--version", "-v":
-			o.wantVer = true
-		case "--help", "-h":
-			o.wantHelp = true
-		}
+func runPlain(cat *rules.Catalog, ruleByID map[string]rules.Rule, category string) {
+	hits := runScan(cat)
+	if category != "" {
+		hits = filterByCategory(hits, ruleByID, category)
 	}
-	return o
+	if len(hits) == 0 {
+		fmt.Println("Nothing to clean. Your system is tidy. ✨")
+		return
+	}
+	printReport(cat, hits, ruleByID)
+	fmt.Println("\nRun without --plain for the picker, or --apply to delete safely.")
+}
+
+func runApply(cat *rules.Catalog, ruleByID map[string]rules.Rule, category string) {
+	hits := runScan(cat)
+	if category != "" {
+		hits = filterByCategory(hits, ruleByID, category)
+	}
+	if len(hits) == 0 {
+		fmt.Println("Nothing to clean. Your system is tidy. ✨")
+		return
+	}
+	runNonInteractiveApply(hits, ruleByID, false /* not safe-only; includes confirm */)
+}
+
+// runApplySafeOnly is the "Quick clean (safe defaults)" menu choice.
+// Like --apply, but restricts to safety=safe (skips the confirm tier too).
+func runApplySafeOnly(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
+	hits := runScan(cat)
+	if len(hits) == 0 {
+		fmt.Println("Nothing to clean. Your system is tidy. ✨")
+		return
+	}
+	runNonInteractiveApply(hits, ruleByID, true /* safe only */)
 }
 
 func runScan(cat *rules.Catalog) []scanner.Hit {
@@ -142,13 +218,17 @@ func filterByCategory(hits []scanner.Hit, ruleByID map[string]rules.Rule, cat st
 	return out
 }
 
-// runNonInteractiveApply deletes safe + confirm hits after a single y/N prompt.
-func runNonInteractiveApply(hits []scanner.Hit, ruleByID map[string]rules.Rule) {
+// runNonInteractiveApply deletes hits after a single y/N prompt.
+// If safeOnly is true, only safety=safe is considered; otherwise safe + confirm.
+func runNonInteractiveApply(hits []scanner.Hit, ruleByID map[string]rules.Rule, safeOnly bool) {
 	var toClean []scanner.Hit
 	var total int64
 	for _, h := range hits {
 		r := ruleByID[h.RuleID]
 		if r.Safety == "dangerous" {
+			continue
+		}
+		if safeOnly && r.Safety != "safe" {
 			continue
 		}
 		toClean = append(toClean, h)
@@ -314,6 +394,14 @@ func shortDesc(d string) string {
 	return d[:57] + "..."
 }
 
+// waitForKey blocks until the user presses enter. Used after one-shot
+// menu actions ("About", "Last log") so the output isn't immediately
+// hidden behind the welcome menu re-render.
+func waitForKey() {
+	fmt.Print("\nPress enter to return to the menu… ")
+	bufio.NewReader(os.Stdin).ReadString('\n')
+}
+
 func die(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "reclaim: "+format+"\n", args...)
 	os.Exit(1)
@@ -324,7 +412,8 @@ func printHelp() {
 	fmt.Printf(`reclaim — a developer-aware Mac cleaner
 
 USAGE:
-    %s                            Interactive TUI (scan + pick + apply)
+    %s                            Welcome menu (interactive entry point)
+    %s --pick                     Skip welcome; go straight to picker TUI
     %s --plain                    Print plain-text report only
     %s --apply                    Non-interactive apply (safe + confirm items)
     %s --apply -c build-caches    Limit to one category
@@ -334,6 +423,7 @@ USAGE:
 FLAGS:
     -a, --apply               Apply without TUI (single y/N prompt)
     -p, --plain               Plain text scan, no TUI
+        --pick                Skip welcome menu; go straight to picker
     -c, --category <id>       Restrict to a category
     -v, --version             Print version
     -h, --help                Show this help
@@ -353,5 +443,5 @@ SAFETY:
 
 LOG:
     Each apply run is logged to ~/.reclaim/logs/YYYY-MM-DD.jsonl
-`, exe, exe, exe, exe, exe, exe)
+`, exe, exe, exe, exe, exe, exe, exe)
 }

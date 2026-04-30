@@ -50,21 +50,69 @@ Highlights:
 
 ## Install
 
-### Homebrew (recommended)
+### Homebrew
+
+One-liner (taps and installs in one go):
 
 ```sh
-brew install imadrashid/tap/reclaim
+brew install ImadRashid/tap/reclaim
 ```
 
-### From a release archive
+Or tap once, then install by short name forever:
 
 ```sh
-# Apple Silicon
-curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.0_darwin_arm64.tar.gz | tar -xz
-sudo mv reclaim_v0.1.0_darwin_arm64/reclaim /usr/local/bin/
+brew tap ImadRashid/tap
+brew install reclaim
+```
+
+To upgrade later: `brew upgrade reclaim`. To uninstall: `brew uninstall reclaim`.
+
+> Why not plain `brew install reclaim`? That's reserved for tools in the
+> official `homebrew-core` registry, which has acceptance criteria like a
+> minimum number of stars. `reclaim` will apply once it has real adoption.
+
+### Direct download
+
+Grab a prebuilt binary from the
+[releases page](https://github.com/ImadRashid/reclaim/releases) — pick the
+archive that matches your machine.
+
+```sh
+# Apple Silicon (M1/M2/M3/M4)
+curl -L -o reclaim.tar.gz \
+  https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_arm64.tar.gz
+tar -xzf reclaim.tar.gz
+sudo mv reclaim_v0.1.1_darwin_arm64/reclaim /usr/local/bin/reclaim
+sudo chmod +x /usr/local/bin/reclaim
 
 # Intel Mac
-curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.0_darwin_amd64.tar.gz | tar -xz
+curl -L -o reclaim.tar.gz \
+  https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_amd64.tar.gz
+tar -xzf reclaim.tar.gz
+sudo mv reclaim_v0.1.1_darwin_amd64/reclaim /usr/local/bin/reclaim
+sudo chmod +x /usr/local/bin/reclaim
+
+# Linux ARM64
+curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_arm64.tar.gz | tar -xz
+
+# Linux AMD64
+curl -L https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_amd64.tar.gz | tar -xz
+```
+
+> **Gatekeeper note (macOS):** the first time you run a directly-downloaded
+> binary, macOS may say *"reclaim cannot be opened because the developer cannot
+> be verified."* Either:
+> 1. Right-click the binary in Finder → Open (one-time approval), or
+> 2. From a terminal: `xattr -d com.apple.quarantine /usr/local/bin/reclaim`
+>
+> Homebrew installs don't trigger this because brew strips the quarantine
+> attribute automatically.
+
+Each release also publishes `.sha256` files. Verify a download with:
+
+```sh
+shasum -a 256 reclaim_v0.1.1_darwin_arm64.tar.gz
+# Compare against the value in reclaim_v0.1.1_darwin_arm64.tar.gz.sha256
 ```
 
 ### From source
@@ -76,20 +124,47 @@ go build -o reclaim .
 ./reclaim --help
 ```
 
-Requires Go 1.21+.
+Requires **Go 1.21+**. The resulting binary is a single static file with no
+runtime dependencies.
 
 ---
 
 ## Usage
 
 ```sh
-reclaim                              # Interactive TUI: scan, pick, apply
-reclaim --plain                      # Print plain-text report (no TUI)
+reclaim                              # Welcome menu (default entry point)
+reclaim --pick                       # Skip welcome, go straight to picker TUI
+reclaim --plain                      # Print plain-text report (no TUI, no I/O until you confirm)
 reclaim --apply                      # Non-interactive apply (safe + confirm items)
 reclaim --apply -c build-caches      # Limit to one category
 reclaim --version
 reclaim --help
 ```
+
+### The welcome menu
+
+Running `reclaim` with no flags now opens a menu first — nothing is scanned
+until you pick an action.
+
+```
+🧹 reclaim — developer-aware Mac cleaner
+
+  Find and free disk space taken by build caches, package
+  managers, IDE artifacts, and stale project dependencies.
+
+  Nothing is deleted without your explicit confirmation.
+
+  What would you like to do?
+
+  ▶ Quick scan & pick           Scan and choose what to clean
+    Quick clean (safe defaults) Scan and clean only ✓ safe items
+    Browse by category          Pick a single category to scan
+    Last cleanup log            See what was deleted last time
+    About / help                Keys, safety model, docs
+    Quit
+```
+
+Power users can skip the menu with any flag (`--pick`, `--plain`, `--apply`).
 
 ### TUI keys
 

@@ -30,7 +30,7 @@ func Apply(hits []scanner.Hit, ruleByID map[string]rules.Rule, onProgress func(s
 		}
 		r := ruleByID[h.RuleID]
 
-		// Process check: skip if a named app is running.
+		// Single-process check (legacy ProcessCheck): skip if the app is running.
 		if r.ProcessCheck != "" && processRunning(r.ProcessCheck) {
 			results = append(results, Result{
 				RuleID:  h.RuleID,
@@ -41,7 +41,31 @@ func Apply(hits []scanner.Hit, ruleByID map[string]rules.Rule, onProgress func(s
 			continue
 		}
 
-		// Command-based rules (e.g. xcrun simctl delete unavailable)
+		// Multi-process check (WarnIfRunning): skip if any listed app is running.
+		if running := firstRunning(r.WarnIfRunning); running != "" {
+			results = append(results, Result{
+				RuleID:  h.RuleID,
+				Path:    h.Path,
+				Skipped: true,
+				Reason:  fmt.Sprintf("%q is running — quit it first", running),
+			})
+			continue
+		}
+
+		// Shell-action rules (e.g. `docker system prune`). Run the action
+		// command, capture output, and report a single result.
+		if r.Action == "shell" && r.ActionCommand != "" {
+			if err := runShell(r.ActionCommand); err != nil {
+				results = append(results, Result{RuleID: h.RuleID, Err: err})
+			} else {
+				results = append(results, Result{RuleID: h.RuleID})
+			}
+			continue
+		}
+
+		// Legacy command-based rules (e.g. xcrun simctl delete unavailable)
+		// Action: "shell" supersedes this; keep it for backwards compatibility
+		// with existing rules that use the older Cmd field.
 		if r.Detect == "command" && r.Cmd != "" {
 			if err := runShell(r.Cmd); err != nil {
 				results = append(results, Result{RuleID: h.RuleID, Err: err})
@@ -96,4 +120,16 @@ func processRunning(name string) bool {
 		return false
 	}
 	return strings.TrimSpace(string(out)) != ""
+}
+
+// firstRunning returns the name of the first process from the list that is
+// currently running, or "" if none are. Used by WarnIfRunning to decide
+// whether to skip a rule's deletion.
+func firstRunning(names []string) string {
+	for _, n := range names {
+		if processRunning(n) {
+			return n
+		}
+	}
+	return ""
 }

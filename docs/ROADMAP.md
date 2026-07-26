@@ -4,6 +4,10 @@ This document captures what `reclaim` covers today, where the gaps are, and
 what to build next. It's written for contributors picking up an issue and for
 the maintainer planning releases.
 
+> See also: [RULES_EXPANSION_PLAN.md](RULES_EXPANSION_PLAN.md) for the
+> drop-in catalog of new rules planned for v0.2 and beyond, plus the engine
+> changes they require.
+
 If you want to fill one of these gaps, open an issue first (use the
 [New cleanup rule](../.github/ISSUE_TEMPLATE/new_rule.yml) template) so we can
 discuss the safety tier and rule shape before you write code.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -74,9 +75,23 @@ func scanRule(r rules.Rule) []Hit {
 	case "scan":
 		return scanPattern(r)
 	case "command":
-		return nil // commands report 0 size; engine reruns them
+		return scanCommandRule(r)
 	}
 	return nil
+}
+
+// scanCommandRule emits a single virtual hit for a rule whose presence is
+// gated on a probe command. The hit has no path and zero size — it's a
+// signal to the UI/engine that this rule is available. The probe command,
+// if specified via detect_command, must exit 0.
+func scanCommandRule(r rules.Rule) []Hit {
+	if r.DetectCommand != "" {
+		if err := exec.Command("sh", "-c", r.DetectCommand).Run(); err != nil {
+			return nil
+		}
+	}
+	// Synthetic hit: surfaces the rule in the UI without a real path.
+	return []Hit{{RuleID: r.ID}}
 }
 
 func scanFixedPaths(r rules.Rule) []Hit {

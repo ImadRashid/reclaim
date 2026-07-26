@@ -2,6 +2,20 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Changed
+
+- README refreshed for v0.2.0: download one-liners point at the current
+  release assets, the coverage table lists the new categories and rules, and
+  the roadmap section targets v0.3.
+- CONTRIBUTING documents the new rule fields (`detect_command`, `action`,
+  `action_command`, `warn_if_running`); the vendor-cleaner example now uses
+  the `action: shell` form.
+- `scripts/release.sh` now bumps the versioned asset names in the README
+  automatically as part of the release commit.
+- ROADMAP updated: v0.2.0 marked shipped with what landed vs. slipped.
+
 ## v0.2.0 — 2026-07-26
 
 ### Added

@@ -38,11 +38,13 @@ if git rev-parse -q --verify "refs/tags/$ver" >/dev/null; then
   exit 1
 fi
 
-# Rename the Unreleased section so release.yml can extract the notes.
+# Rename the Unreleased section so release.yml can extract the notes, and
+# bump the versioned asset names in the README download commands.
 if grep -q '^## Unreleased' CHANGELOG.md; then
   today="$(date +%Y-%m-%d)"
   sed -i '' "s/^## Unreleased/## $ver — $today/" CHANGELOG.md
-  git add CHANGELOG.md
+  sed -i '' "s/reclaim_v[0-9][0-9.]*_/reclaim_${ver}_/g" README.md
+  git add CHANGELOG.md README.md
   git commit -m "Release $ver"
 elif ! grep -q "^## $ver" CHANGELOG.md; then
   echo "release: CHANGELOG.md has no '## Unreleased' or '## $ver' section" >&2

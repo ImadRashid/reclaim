@@ -146,13 +146,20 @@ For per-project caches discovered by walking the filesystem:
 For tools that have their own cleanup command (rare; needs review):
 
 ```yaml
-- id: ios-simulators-unavailable
-  category: ide-caches
-  cmd: xcrun simctl delete unavailable
-  safety: safe
-  description: Remove iOS simulators left behind from old Xcode versions.
+- id: docker-system-prune
+  category: container-caches
+  safety: confirm
+  regenerates: true
+  description: Run `docker system prune` to drop dangling images and build cache.
   detect: command
+  detect_command: "docker info >/dev/null 2>&1"   # only show if daemon responds
+  action: shell
+  action_command: "docker system prune -f --filter until=720h"
 ```
+
+(The older single-field form — `cmd: xcrun simctl delete unavailable` with
+`detect: command` — still works, but new rules should use
+`detect_command` + `action: shell` so visibility and action are explicit.)
 
 ### Rule fields reference
 
@@ -168,9 +175,13 @@ For tools that have their own cleanup command (rare; needs review):
 | `requires_sibling` | string |  | Match only if this file/dir exists in the same parent |
 | `safety` | enum | ✓ | `safe` \| `confirm` \| `dangerous` |
 | `regenerates` | bool |  | True if the path is recreated by normal use |
-| `cmd` | string | for `command` | Shell command, only for vendor cleaners |
+| `cmd` | string | for `command` | Shell command, only for vendor cleaners (legacy; prefer `action: shell`) |
 | `description` | string | ✓ | One sentence; first 60 chars are shown in plain mode |
 | `detect` | enum | ✓ | `dir-exists` \| `scan` \| `command` |
+| `detect_command` | string |  | With `detect: command` — rule is only shown if this probe exits 0 |
+| `action` | enum |  | `remove` (default, deletes matched paths) \| `shell` (runs `action_command`) |
+| `action_command` | string | for `action: shell` | Vendor cleanup command; stdout/stderr shown to the user |
+| `warn_if_running` | []string |  | Skip deletion if any of these processes is running |
 | `activity_check` | bool |  | If true, scanner annotates hits with git staleness |
 | `process_check` | string |  | Skip the rule's hits if this process is running |
 

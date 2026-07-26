@@ -14,7 +14,13 @@ discuss the safety tier and rule shape before you write code.
 
 ---
 
-## Where we stand today (v0.1.0)
+## Where we stand today (v0.2.0)
+
+v0.2.0 (2026-07-26) shipped 39 new rules (77 total across 9 categories) plus
+three engine capabilities: `detect_command` probe-gating, `action: shell`
+vendor cleanup commands, and `warn_if_running` process guards. The table
+below describes the v0.1 baseline; the gap tables further down are annotated
+where v0.2.0 closed them.
 
 ### Covered well
 
@@ -155,23 +161,21 @@ These are **directional**, not commitments. Each release ships when it's ready.
 - GitHub Actions cross-compile pipeline
 - Homebrew formula template
 
-### v0.2.0 — close the dev-stack gap
+### v0.2.0 — close the dev-stack gap ✅ (shipped 2026-07-26)
 
-The high-impact rules above marked **★**:
+Shipped: fvm SDK versions, Bun, Deno, Yarn Berry, Turborepo `.turbo`,
+Cypress, conda package cache, NuGet, gems, Composer, Carthage, Go module
+cache, Gradle native / Ivy / sbt, Bazel, AWS CLI + Terraform plugin caches,
+Android build cache / unused AVDs / stale system images, Xcode Previews /
+device logs / CoreSimulator caches / IPSW firmware, Cursor / Windsurf / Zed,
+Docker `system prune` + buildx, Colima / Lima VMs, npm logs, pipenv, nvm,
+Prisma, Dart analysis server. Engine: `detect_command`, `action: shell`,
+`warn_if_running`. TUI: `o` opens the folder in Finder, scroll indicator.
+Releases fully automated (tag → binaries → GitHub Release → Homebrew tap).
 
-- fvm SDK versions (activity-aware)
-- Xcode per-version simulator runtimes
-- Bun cache
-- Turborepo `.turbo`
-- Cypress
-- Metro / Expo
-- conda environments
-- pyenv versions
-- NuGet packages
-- Cross-cutting: free space delta in summary
-
-This is the release that makes `reclaim` a serious tool for Flutter / RN /
-Node / Python devs.
+Slipped to v0.3: Metro / Expo caches, pyenv versions, per-version Xcode
+simulator runtime cleanup, conda *environments* (only the package cache
+shipped), free-space delta in the summary.
 
 ### v0.3.0 — productization
 
@@ -180,6 +184,8 @@ Node / Python devs.
 - `--preset <name>` profiles
 - `reclaim doctor`
 - External rule files (`~/.reclaim/rules.d/*.yaml`)
+- Carried over from v0.2: Metro / Expo, pyenv versions, per-version
+  simulator runtimes, free-space delta
 
 ### v0.4.0+ — optional / community-driven
 

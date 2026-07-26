@@ -79,28 +79,28 @@ your `$PATH`. One-line installer:
 
 ```sh
 # Apple Silicon (M1/M2/M3/M4)
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_arm64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_darwin_arm64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.1.1_darwin_arm64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.1.1_darwin_arm64
+  && sudo install -m 0755 reclaim_v0.2.0_darwin_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.2.0_darwin_arm64
 
 # Intel Mac
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_darwin_amd64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_darwin_amd64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.1.1_darwin_amd64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.1.1_darwin_amd64
+  && sudo install -m 0755 reclaim_v0.2.0_darwin_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.2.0_darwin_amd64
 
 # Linux ARM64
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_arm64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_linux_arm64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.1.1_linux_arm64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.1.1_linux_arm64
+  && sudo install -m 0755 reclaim_v0.2.0_linux_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.2.0_linux_arm64
 
 # Linux AMD64
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.1.1_linux_amd64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_linux_amd64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.1.1_linux_amd64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.1.1_linux_amd64
+  && sudo install -m 0755 reclaim_v0.2.0_linux_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.2.0_linux_amd64
 ```
 
 Then run `reclaim` from anywhere.
@@ -126,8 +126,8 @@ download the archive for your platform, double-click to extract, and drag the
 Each release also publishes `.sha256` sidecar files. To verify integrity:
 
 ```sh
-shasum -a 256 reclaim_v0.1.1_darwin_arm64.tar.gz
-# Compare against the value in reclaim_v0.1.1_darwin_arm64.tar.gz.sha256
+shasum -a 256 reclaim_v0.2.0_darwin_arm64.tar.gz
+# Compare against the value in reclaim_v0.2.0_darwin_arm64.tar.gz.sha256
 ```
 
 ### Build from source (only if you want to)
@@ -221,11 +221,12 @@ auditing what changed and when.
 
 | Category | What gets cleaned |
 |----------|-------------------|
-| **Build caches** | `~/.gradle/{caches,wrapper,daemon}`, `~/.m2/repository`, `~/Library/Caches/go-build`, `~/.cargo/{registry,git}`, `~/.rustup` |
-| **Package managers** | npm, yarn, pnpm, pip, uv, poetry, pub, CocoaPods, Homebrew, Hugging Face, Ollama, PyTorch |
-| **Project caches** | `node_modules`, `.next`, `.open-next`, `.dart_tool`, `Pods`, `android/.gradle`, `__pycache__`, virtualenvs, Rust `target/` |
-| **IDE / Xcode** | DerivedData, iOS/watchOS/tvOS DeviceSupport, simulator runtimes, VS Code & JetBrains caches |
-| **Containers** | Docker Desktop VM disk |
+| **Build caches** | Gradle (incl. native), Maven, Ivy, sbt, Go build + module caches, Cargo, rustup, Bazel |
+| **Package managers** | npm (+logs), yarn (+Berry), pnpm, Bun, Deno, nvm, pip, uv, poetry, pipenv, conda, pub, gems, Composer, NuGet, Carthage, CocoaPods, Homebrew, AWS CLI, Terraform plugins, Hugging Face, Ollama, PyTorch |
+| **Project caches** | `node_modules`, `.next`, `.open-next`, `.turbo`, `.dart_tool`, `Pods`, `android/.gradle`, `__pycache__`, virtualenvs, Rust `target/` |
+| **IDE / Xcode** | DerivedData, iOS/watchOS/tvOS DeviceSupport, CoreSimulator caches, Xcode Previews, device logs, IPSW firmware, VS Code / Cursor / Windsurf / Zed, JetBrains, Android AVDs & stale system images, stale fvm Flutter SDKs |
+| **Testing tools** | Playwright, Cypress browser binaries |
+| **Containers** | Docker Desktop VM disk, `docker system prune`, buildx cache, Colima & Lima VMs |
 | **Browsers** | Chrome, Arc caches (won't log you out) |
 
 The full catalog lives in [`internal/rules/catalog.yaml`](internal/rules/catalog.yaml). Adding a
@@ -270,16 +271,15 @@ Rebuild with `go build` and run.
 The full roadmap, gap analysis by stack (Flutter, RN, Node, Python, etc.),
 and tentative release plan lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-Headline items for the next release (v0.2):
+Headline items for the next release (v0.3):
 
-- fvm SDK versions and per-version Xcode simulator runtime cleanup (the
-  two biggest single wins on a Flutter/iOS dev's machine)
-- Bun, Turborepo, Cypress, Metro / Expo
-- conda environments, pyenv versions, NuGet packages
-- Free disk space delta in the summary
-
-After that: per-project view in the TUI, `--trash` (soft delete), preset
-profiles, `reclaim doctor`, external rule files. See the roadmap for details.
+- Per-project view in the TUI ("free everything for this project")
+- `--trash` (soft delete to the macOS Trash, undoable)
+- Preset profiles (`--preset flutter`, `--preset python-ds`)
+- `reclaim doctor` post-cleanup health check
+- External rule files (`~/.reclaim/rules.d/*.yaml`) — no recompile needed
+- Carried over from v0.2: Metro / Expo caches, pyenv versions, per-version
+  Xcode simulator runtime cleanup, free-space delta in the summary
 
 ---
 

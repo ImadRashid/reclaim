@@ -26,10 +26,13 @@ import (
 	"github.com/ImadRashid/reclaim/internal/rules"
 	"github.com/ImadRashid/reclaim/internal/scanner"
 	"github.com/ImadRashid/reclaim/internal/ui"
+	"github.com/ImadRashid/reclaim/internal/update"
 )
 
 // version is overridden at build time via -ldflags "-X main.version=...".
-var version = "0.1.1"
+// scripts/release.sh keeps this default in sync with the latest release so
+// source builds identify (and update-check) correctly.
+var version = "0.2.0"
 
 type opts struct {
 	apply     bool
@@ -38,6 +41,7 @@ type opts struct {
 	category  string
 	wantHelp  bool
 	wantVer   bool
+	noUpdate  bool
 }
 
 func main() {
@@ -57,6 +61,14 @@ func main() {
 	}
 	ruleByID := engine.RuleMap(cat)
 
+	// Once-daily update check, interactive modes only (--plain and --apply
+	// are script-friendly and stay silent). Runs in the background; the
+	// notice, if any, is printed after the chosen mode finishes.
+	updateNotice := func() string { return "" }
+	if !o.plain && !o.apply && !o.noUpdate {
+		updateNotice = update.Start(version)
+	}
+
 	// Mode dispatch:
 	//   --plain                  → plain text report and exit
 	//   --apply                  → non-interactive apply (single y/N)
@@ -71,6 +83,10 @@ func main() {
 		runPicker(cat, ruleByID, o.category)
 	default:
 		runWelcome(cat, ruleByID)
+	}
+
+	if msg := updateNotice(); msg != "" {
+		fmt.Println(msg)
 	}
 }
 
@@ -89,6 +105,8 @@ func parseArgs(args []string) opts {
 				o.category = args[i+1]
 				i++
 			}
+		case "--no-update-check":
+			o.noUpdate = true
 		case "--version", "-v":
 			o.wantVer = true
 		case "--help", "-h":
@@ -137,7 +155,11 @@ func runWelcome(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
 }
 
 func runPicker(cat *rules.Catalog, ruleByID map[string]rules.Rule, category string) {
-	hits := runScan(cat)
+	hits, cancelled := runScanTUI(cat)
+	if cancelled {
+		fmt.Println("Cancelled — nothing was deleted.")
+		return
+	}
 	if category != "" {
 		hits = filterByCategory(hits, ruleByID, category)
 	}
@@ -191,7 +213,11 @@ func runApply(cat *rules.Catalog, ruleByID map[string]rules.Rule, category strin
 // runApplySafeOnly is the "Quick clean (safe defaults)" menu choice.
 // Like --apply, but restricts to safety=safe (skips the confirm tier too).
 func runApplySafeOnly(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
-	hits := runScan(cat)
+	hits, cancelled := runScanTUI(cat)
+	if cancelled {
+		fmt.Println("Cancelled — nothing was deleted.")
+		return
+	}
 	if len(hits) == 0 {
 		fmt.Println("Nothing to clean. Your system is tidy. ✨")
 		return
@@ -199,6 +225,8 @@ func runApplySafeOnly(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
 	runNonInteractiveApply(hits, ruleByID, true /* safe only */)
 }
 
+// runScan is the plain-text scan used by the script-friendly modes
+// (--plain, --apply). Interactive modes use runScanTUI instead.
 func runScan(cat *rules.Catalog) []scanner.Hit {
 	fmt.Printf("\033[1m🧹 reclaim v%s\033[0m — scanning…\n", version)
 	hits := scanner.Scan(context.Background(), cat, func(id string) {
@@ -206,6 +234,16 @@ func runScan(cat *rules.Catalog) []scanner.Hit {
 	})
 	fmt.Print("\r" + strings.Repeat(" ", 60) + "\r")
 	return hits
+}
+
+// runScanTUI scans behind the interactive progress screen (spinner, live
+// tally, cancellable with q).
+func runScanTUI(cat *rules.Catalog) (hits []scanner.Hit, cancelled bool) {
+	hits, cancelled, err := ui.RunScan(cat, version)
+	if err != nil {
+		die("scan: %v", err)
+	}
+	return hits, cancelled
 }
 
 func filterByCategory(hits []scanner.Hit, ruleByID map[string]rules.Rule, cat string) []scanner.Hit {
@@ -425,6 +463,7 @@ FLAGS:
     -p, --plain               Plain text scan, no TUI
         --pick                Skip welcome menu; go straight to picker
     -c, --category <id>       Restrict to a category
+        --no-update-check     Skip the once-daily update check
     -v, --version             Print version
     -h, --help                Show this help
 
@@ -444,5 +483,10 @@ SAFETY:
 
 LOG:
     Each apply run is logged to ~/.reclaim/logs/YYYY-MM-DD.jsonl
+
+UPDATES:
+    Interactive runs check GitHub at most once a day for a newer release
+    and print a one-line notice on exit. Nothing is downloaded or installed.
+    Disable with --no-update-check or RECLAIM_NO_UPDATE_CHECK=1.
 `, exe, exe, exe, exe, exe, exe, exe)
 }

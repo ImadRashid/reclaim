@@ -217,7 +217,10 @@ delete something a user wanted.
 
 ### Don't
 
-- Don't add network calls. `reclaim` runs fully offline.
+- Don't add network calls. The **only** permitted network access is the
+  once-daily update check in `internal/update` (a single GET to the GitHub
+  releases API, opt-out via `--no-update-check` / `RECLAIM_NO_UPDATE_CHECK=1`,
+  never blocks, never downloads anything). Everything else runs fully offline.
 - Don't add telemetry, crash reporting, or analytics.
 - Don't shell out to `rm`. Use `os.RemoveAll` (it's safer and gives us errors).
 - Don't bypass `CheckPathSafe`. If your code path needs to delete, it goes

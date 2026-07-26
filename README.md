@@ -215,6 +215,16 @@ Every apply run appends a JSONL record to `~/.reclaim/logs/YYYY-MM-DD.jsonl`,
 recording rule id, path, freed bytes, errors, and skipped items. Useful for
 auditing what changed and when.
 
+### Update check
+
+Interactive runs (the welcome menu and picker) check GitHub for a newer
+release **at most once every 24 hours** and, if one exists, print a one-line
+notice on exit telling you how to upgrade (via brew or the releases page,
+matched to how you installed). Nothing is ever downloaded or installed
+automatically, and this is the only network request `reclaim` makes.
+`--plain` and `--apply` never check. Opt out entirely with
+`--no-update-check` or `RECLAIM_NO_UPDATE_CHECK=1`.
+
 ---
 
 ## What it knows about

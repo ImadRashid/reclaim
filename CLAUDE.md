@@ -48,7 +48,7 @@ Data flow: **catalog → scan → select → apply → log**
 
 ## Hard constraints (from CONTRIBUTING.md)
 
-- No network calls, telemetry, or crash reporting — reclaim runs fully offline.
+- No network calls, telemetry, or crash reporting — reclaim runs fully offline. Sole exception: the once-daily, opt-out update check in `internal/update` (one GET to the GitHub releases API; never blocks, never downloads). Don't add others.
 - Don't shell out to `rm`; use `os.RemoveAll`.
 - No CGO; no new external dependencies without justification.
 - Errors flow up; the only `os.Exit` is `die()` in `main.go`. No `panic()` in normal paths.

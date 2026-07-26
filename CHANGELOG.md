@@ -4,6 +4,22 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ## Unreleased
 
+### Added
+
+- **Interactive scan screen**: scanning from the welcome menu or `--pick`
+  now shows an animated spinner, which rule is being checked (`12/77`), a
+  live tally of items and size found, elapsed time, and can be cancelled
+  with `q`. `--plain` and `--apply` keep the simple text progress.
+
+- **Once-daily update check** (interactive modes only): a background request
+  to the GitHub releases API, cached for 24h in
+  `~/.reclaim/update-check.json`, prints a one-line upgrade notice on exit
+  when a newer version exists — suggesting `brew upgrade reclaim` for brew
+  installs and the releases page otherwise. Nothing is downloaded or
+  installed automatically. Opt out with `--no-update-check` or
+  `RECLAIM_NO_UPDATE_CHECK=1`; `--plain` and `--apply` never check. This is
+  the only network call reclaim makes.
+
 ### Changed
 
 - README refreshed for v0.2.0: download one-liners point at the current

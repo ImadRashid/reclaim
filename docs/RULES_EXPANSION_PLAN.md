@@ -112,9 +112,16 @@ Legend: ✅ = covered, 🟡 = partial / behind a flag, ❌ = not yet covered
 | Arc | ✅ |
 | **AI / ML** | |
 | `~/.cache/huggingface` | ✅ |
-| `~/.ollama/models` | ✅ |
+| `~/Library/Caches/ollama` | ✅ |
+| `~/.ollama/models` (the actual model store, often tens of GB) | ❌ |
 | `~/.cache/torch` | ✅ |
 | `~/Library/Caches/Claude` | ❌ |
+| **AI CLI tools** *(see §3.3)* | |
+| Claude Code `~/Library/Caches/claude-cli-nodejs` | ❌ |
+| Claude Code `~/.claude/projects` + `~/.claude/shell-snapshots` (session history) | ❌ |
+| Codex CLI `~/.codex` (sessions, logs) | ❌ |
+| Gemini CLI `~/.gemini` (tmp, caches) | ❌ |
+| Copilot CLI caches | ❌ |
 | **Testing tools** | |
 | `~/.cache/ms-playwright` / `~/Library/Caches/ms-playwright` | ❌ |
 | `~/.cache/puppeteer` | ❌ |
@@ -743,6 +750,81 @@ These rules need path-pattern scanning under user-configured project roots
   detect: scan
   staleness: git-log
 ```
+
+### 3.3 AI tool caches (proposed for v0.3)
+
+AI CLIs and model runners are a fast-growing gap: heavy users accumulate
+gigabytes of session transcripts and model weights that no cleaner touches.
+Proposed as a new category so users can reason about them as a group:
+
+```yaml
+# categories:
+- id: ai-tools
+  name: AI tool caches
+  description: Caches, session history, and model stores from AI assistants
+
+# rules:
+- id: claude-code-cache
+  category: ai-tools
+  paths:
+    - ~/Library/Caches/claude-cli-nodejs
+  safety: safe
+  regenerates: true
+  description: Claude Code CLI cache (rebuilt automatically)
+  detect: dir-exists
+
+- id: claude-code-history
+  category: ai-tools
+  paths:
+    - ~/.claude/projects
+    - ~/.claude/shell-snapshots
+  safety: confirm
+  regenerates: false
+  description: Claude Code session transcripts and shell snapshots. Deleting disables --resume and transcript recall for past sessions.
+  detect: dir-exists
+
+- id: codex-cli-sessions
+  category: ai-tools
+  paths:
+    - ~/.codex/sessions
+    - ~/.codex/log
+  safety: confirm
+  regenerates: false
+  description: Codex CLI session history and logs
+  detect: dir-exists
+
+- id: gemini-cli-tmp
+  category: ai-tools
+  paths:
+    - ~/.gemini/tmp
+  safety: confirm
+  regenerates: true
+  description: Gemini CLI temp and session data
+  detect: dir-exists
+
+- id: ollama-models
+  category: ai-tools
+  paths:
+    - ~/.ollama/models
+  safety: confirm
+  regenerates: true
+  warn_if_running:
+    - ollama
+  description: Ollama model store (often tens of GB; re-pull with `ollama pull`)
+  detect: dir-exists
+```
+
+**Safety notes for this group:**
+
+- **Never** add `~/.claude` (or `~/.codex` / `~/.gemini`) wholesale — those
+  roots also hold settings, memory files, and auth credentials. Only the
+  specific history/cache subdirectories are deletable.
+- Session-history rules are `confirm`, not `safe`: the data does not
+  regenerate — deleting it is deleting the user's history. The description
+  must say what is lost.
+- Every path above must be verified on a real machine (contents inspected,
+  size sampled) before the rule lands — directory layouts for these tools
+  change between versions.
 
 ---
 

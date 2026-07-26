@@ -113,7 +113,8 @@ on a typical dev machine) is marked **★**. These should be prioritized first.
 | **JetBrains IDEs (per-version)** | `~/Library/Caches/JetBrains/<IDE>2024.x/` is versioned — old versions linger after upgrade |
 | **VS Code logs** | `~/Library/Application Support/Code/logs` |
 | **VS Code forks** (Cursor, Windsurf, Trae, etc.) | Each has its own `~/Library/Application Support/<name>/` |
-| **AI coding assistants** | Cline / Cursor / Windsurf chat history & extension caches |
+| **AI CLI tools** | Claude Code (`~/Library/Caches/claude-cli-nodejs`; `~/.claude/projects` + `shell-snapshots` session history), Codex CLI (`~/.codex`), Gemini CLI (`~/.gemini`), Copilot CLI. Editor caches (Cursor/Windsurf) shipped in v0.2; chat/session history did not. See RULES_EXPANSION_PLAN §3.3 — proposed `ai-tools` category. |
+| **AI model stores** | `~/.ollama/models` — the real Ollama payload (tens of GB); only `~/Library/Caches/ollama` is covered today. Needs `warn_if_running: [ollama]`. |
 
 ### Mac-specific opportunities
 
@@ -184,8 +185,15 @@ shipped), free-space delta in the summary.
 - `--preset <name>` profiles
 - `reclaim doctor`
 - External rule files (`~/.reclaim/rules.d/*.yaml`)
+- **`ai-tools` category**: Claude Code / Codex / Gemini CLI caches and
+  session history, `~/.ollama/models` (see RULES_EXPANSION_PLAN §3.3)
 - Carried over from v0.2: Metro / Expo, pyenv versions, per-version
   simulator runtimes, free-space delta
+- Known fixes: blank picker row for command-based rules (pathless synthetic
+  hits render as empty), spurious "(active)" staleness label on
+  non-project rules (`StalenessDays` defaults to 0 instead of -1), and
+  `go-module-cache` should use `action: shell` + `go clean -modcache`
+  (read-only file modes break plain `os.RemoveAll`)
 
 ### v0.4.0+ — optional / community-driven
 

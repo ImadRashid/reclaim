@@ -192,6 +192,7 @@ Power users can skip the menu with any flag (`--pick`, `--plain`, `--apply`).
 | `↑` / `↓` / `j` / `k` | Navigate |
 | `space` | Toggle item (or select/deselect a whole category) |
 | `→` / `l`, `←` / `h` | Expand / collapse category |
+| `o` | Open the highlighted folder in Finder |
 | `a` | Select all non-dangerous items |
 | `n` | Deselect everything |
 | `enter` | Apply selected (with confirmation) |

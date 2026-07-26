@@ -2,6 +2,31 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- **39 new cleanup rules** across the catalog: JS tooling (Bun, Deno, Yarn
+  Berry, npm logs, Turborepo, nvm), Python (pipenv, conda), Ruby gems,
+  Composer, NuGet, Carthage, Go module cache, JVM (Gradle native, Ivy, sbt),
+  Bazel, AWS CLI and Terraform plugin caches, Android (build cache, unused
+  AVDs, stale system images), Xcode (Previews, device logs, CoreSimulator
+  caches, IPSW firmware), fvm stale Flutter SDKs, editors (Cursor, Windsurf,
+  Zed, VS Code logs, JetBrains logs), Docker (`system prune`, buildx cache),
+  Colima/Lima VMs, Cypress, Prisma, and the Dart analysis server cache.
+- **New "Testing tool caches" category** (Playwright, Cypress).
+- **New rule capabilities**: `detect_command` gates a rule on a probe command
+  exiting 0 (e.g. only show `docker system prune` when the daemon responds),
+  `action: shell` runs a vendor-supplied cleanup command instead of deleting
+  paths, and `warn_if_running` skips deletion while any listed app is open.
+- **`o` key in the picker TUI** opens the highlighted folder in Finder
+  (`xdg-open` on Linux) so you can inspect contents before deleting.
+- **Scroll indicator** below the list showing how many rows are hidden
+  off-screen (e.g. `… ↑ 5 more above · ↓ 19 more below`).
+- **One-command releases**: `scripts/release.sh vX.Y.Z` handles the CHANGELOG
+  rename, commit, tag, and push; the release workflow now also updates the
+  Homebrew tap formula automatically (new `homebrew` job in `release.yml`).
+
 ## v0.1.1 — 2026-04-30
 
 ### Added

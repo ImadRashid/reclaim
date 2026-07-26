@@ -74,3 +74,55 @@ jobs:
           files: dist/*
           body_path: release_notes.md
           generate_release_notes: true
+
+  homebrew:
+    name: Update Homebrew tap
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate formula from template
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sha() { cut -d' ' -f1 "dist/reclaim_${GITHUB_REF_NAME}_$1.tar.gz.sha256"; }
+          sed -e "s/VERSION/${version}/" \
+              -e "s/REPLACE_WITH_DARWIN_ARM64_SHA256/$(sha darwin_arm64)/" \
+              -e "s/REPLACE_WITH_DARWIN_AMD64_SHA256/$(sha darwin_amd64)/" \
+              -e "s/REPLACE_WITH_LINUX_ARM64_SHA256/$(sha linux_arm64)/" \
+              -e "s/REPLACE_WITH_LINUX_AMD64_SHA256/$(sha linux_amd64)/" \
+              packaging/homebrew/reclaim.rb > reclaim.rb
+          # Fail loudly if any placeholder survived (e.g. a missing artifact).
+          if grep -q 'REPLACE_WITH\|"VERSION"' reclaim.rb; then
+            echo "::error::formula still contains placeholders"
+            cat reclaim.rb
+            exit 1
+          fi
+          cat reclaim.rb
+
+      - name: Push formula to homebrew-tap
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          if [ -z "${TAP_TOKEN}" ]; then
+            echo "::warning::TAP_GITHUB_TOKEN secret not set — skipping tap update. Copy the formula to ImadRashid/homebrew-tap manually."
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/ImadRashid/homebrew-tap.git" tap
+          mkdir -p tap/Formula
+          cp reclaim.rb tap/Formula/reclaim.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/reclaim.rb
+          if git diff --cached --quiet; then
+            echo "Formula unchanged — nothing to push."
+            exit 0
+          fi
+          git commit -m "reclaim ${GITHUB_REF_NAME}"
+          git push

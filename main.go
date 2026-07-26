@@ -432,6 +432,7 @@ KEYS (in TUI):
     ↑/↓/j/k    navigate
     space      toggle selection (or expand category)
     →/l, ←/h   expand / collapse category
+    o          open the highlighted folder in Finder
     a / n      select all safe / select none
     enter      apply selected (with confirmation)
     q / esc    quit

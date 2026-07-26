@@ -10,6 +10,7 @@
 //   space    toggle selection (or expand category)
 //   →/l      expand category
 //   ←/h      collapse category
+//   o        open the highlighted folder in Finder
 //   a        select all safe items
 //   n        select none
 //   enter    apply selected (with confirmation)
@@ -19,6 +20,8 @@ package ui
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -211,6 +214,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected[row.HitIndex] = true
 				}
 			}
+		case "o":
+			row := m.rows[m.cursor]
+			if !row.IsCategory {
+				openInFinder(m.hits[row.HitIndex].Path)
+			}
 		case "a":
 			for i, h := range m.hits {
 				if m.ruleByID[h.RuleID].Safety != "dangerous" {
@@ -251,7 +259,7 @@ func (m Model) View() string {
 		dimStyle.Render(formatSize(totalAll))))
 
 	// Calculate visible window for scrolling.
-	listHeight := m.height - 8 // account for title, totals, help
+	listHeight := m.height - 9 // account for title, totals, scroll indicator, help
 	if listHeight < 5 {
 		listHeight = 5
 	}
@@ -276,6 +284,19 @@ func (m Model) View() string {
 		b.WriteString("\n")
 	}
 
+	// Scroll indicator: how many rows are hidden off-screen.
+	var hidden []string
+	if start > 0 {
+		hidden = append(hidden, fmt.Sprintf("↑ %d more above", start))
+	}
+	if end < len(m.rows) {
+		hidden = append(hidden, fmt.Sprintf("↓ %d more below", len(m.rows)-end))
+	}
+	if len(hidden) > 0 {
+		b.WriteString(dimStyle.Render("    … " + strings.Join(hidden, " · ")))
+	}
+	b.WriteString("\n")
+
 	if m.confirming {
 		b.WriteString("\n")
 		b.WriteString(confirmStyle.Render(
@@ -285,7 +306,7 @@ func (m Model) View() string {
 	} else {
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render(
-			"↑/↓ move  space toggle  ←/→ collapse  a all  n none  enter apply  q quit"))
+			"↑/↓ move  space toggle  ←/→ collapse  o open  a all  n none  enter apply  q quit"))
 	}
 	return b.String()
 }
@@ -386,4 +407,18 @@ func abbreviatePath(p string) string {
 		return "~" + strings.TrimPrefix(p, home)
 	}
 	return p
+}
+
+// openInFinder opens the given directory in Finder (or the platform file
+// manager) so the user can inspect it before deciding to delete. No-op for
+// synthetic hits without a path (command-based rules).
+func openInFinder(path string) {
+	if path == "" {
+		return
+	}
+	opener := "open"
+	if runtime.GOOS != "darwin" {
+		opener = "xdg-open"
+	}
+	_ = exec.Command(opener, path).Start()
 }

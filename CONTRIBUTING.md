@@ -294,22 +294,23 @@ Don't open a public issue for security problems — see [SECURITY.md](SECURITY.m
 
 ## Releases
 
-Releases are cut by maintainers via tags:
+Releases are cut by maintainers with one command:
 
 ```sh
-git tag v0.2.0 -m "v0.2.0"
-git push origin v0.2.0
+scripts/release.sh v0.2.0
 ```
 
-The `release.yml` workflow then:
+The script verifies a clean `main`, renames the `## Unreleased` CHANGELOG
+section to the new version, commits, tags, and pushes. The `release.yml`
+workflow then:
 
 1. Cross-compiles `darwin/arm64`, `darwin/amd64`, `linux/arm64`, `linux/amd64`
 2. Creates `.tar.gz` archives with `README.md` + `LICENSE`
 3. Generates `.sha256` files
-4. Publishes a GitHub Release with auto-generated notes
-
-After the release, the maintainer updates `packaging/homebrew/reclaim.rb` with
-the new version + SHAs and pushes to the `homebrew-tap` repo.
+4. Publishes a GitHub Release with notes extracted from `CHANGELOG.md`
+5. Fills the version + SHAs into `packaging/homebrew/reclaim.rb` and pushes
+   the result to the `homebrew-tap` repo (via the `TAP_GITHUB_TOKEN` secret),
+   so `brew upgrade reclaim` picks it up immediately.
 
 Contributors don't need to do any of this — just merge to `main`.
 

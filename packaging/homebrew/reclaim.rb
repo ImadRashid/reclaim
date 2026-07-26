@@ -1,11 +1,9 @@
-# Homebrew formula for reclaim.
+# Homebrew formula TEMPLATE for reclaim — do not edit the placeholders.
 #
-# After cutting a release on GitHub:
-#   1. Replace VERSION below with the tag (without the leading "v").
-#   2. Replace the SHA256 placeholders with the actual hashes from
-#      reclaim_vX.Y.Z_<os>_<arch>.tar.gz.sha256 in the release.
-#   3. Copy this file to the homebrew-tap repo at: Formula/reclaim.rb
-#   4. Push. Users can then: brew install imadrashid/tap/reclaim
+# The `homebrew` job in .github/workflows/release.yml fills in VERSION and
+# the SHA256 placeholders from the release artifacts, then pushes the result
+# to ImadRashid/homebrew-tap as Formula/reclaim.rb (requires the
+# TAP_GITHUB_TOKEN repo secret). No manual steps.
 class Reclaim < Formula
   desc "Developer-aware Mac cleaner CLI"
   homepage "https://github.com/ImadRashid/reclaim"

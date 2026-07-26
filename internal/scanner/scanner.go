@@ -53,17 +53,36 @@ func DirSize(root string) int64 {
 // Scan walks the catalog and returns all hits, with sizes.
 // progress, if non-nil, is called once per rule with the rule id.
 func Scan(ctx context.Context, cat *rules.Catalog, progress func(ruleID string)) []Hit {
+	var onRule func(ruleID string, index, total int)
+	if progress != nil {
+		onRule = func(ruleID string, _, _ int) { progress(ruleID) }
+	}
+	return ScanEvents(ctx, cat, onRule, nil)
+}
+
+// ScanEvents is Scan with richer progress reporting, for interactive UIs.
+// onRule, if non-nil, fires before each rule with its position in the
+// catalog; onHits, if non-nil, fires after each rule that produced hits.
+// Both are called from the goroutine running the scan.
+func ScanEvents(ctx context.Context, cat *rules.Catalog, onRule func(ruleID string, index, total int), onHits func([]Hit)) []Hit {
 	var hits []Hit
-	for _, r := range cat.Rules {
-		if progress != nil {
-			progress(r.ID)
+	total := len(cat.Rules)
+	for i, r := range cat.Rules {
+		if onRule != nil {
+			onRule(r.ID, i+1, total)
 		}
 		select {
 		case <-ctx.Done():
 			return hits
 		default:
 		}
-		hits = append(hits, scanRule(r)...)
+		found := scanRule(r)
+		if len(found) > 0 {
+			hits = append(hits, found...)
+			if onHits != nil {
+				onHits(found)
+			}
+		}
 	}
 	return hits
 }

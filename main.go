@@ -32,7 +32,7 @@ import (
 // version is overridden at build time via -ldflags "-X main.version=...".
 // scripts/release.sh keeps this default in sync with the latest release so
 // source builds identify (and update-check) correctly.
-var version = "0.3.0"
+var version = "0.3.1"
 
 type opts struct {
 	apply    bool

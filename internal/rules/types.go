@@ -48,4 +48,9 @@ type Rule struct {
 	// the rule is being applied, the engine skips the deletion and
 	// records a "skipped: <name> is running" result.
 	WarnIfRunning []string `yaml:"warn_if_running"`
+
+	// OptIn keeps a rule out of bulk selection: --apply skips it unless
+	// its category is targeted with -c, and the picker's "select all"
+	// leaves it alone. Users must pick its items deliberately.
+	OptIn bool `yaml:"opt_in"`
 }

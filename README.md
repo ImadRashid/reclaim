@@ -209,6 +209,24 @@ Power users can skip the menu with any flag (`--pick`, `--plain`, `--apply`).
 `--apply` (non-interactive) will delete `safe` and `confirm` items only.
 The TUI lets you select anything except `dangerous`.
 
+Items marked 🔒 are shown so you can see where the space is, but can't be
+selected at all — for example a git worktree with uncommitted changes.
+
+### Git worktrees
+
+reclaim finds linked worktrees (including the ones AI coding agents create
+under `.claude/worktrees/`) by asking git in every repo under your projects
+folder. Each one is labelled with its branch, whether it's merged, and how
+long it's been idle. A worktree is locked 🔒 if it has uncommitted or
+untracked changes, gitignored secrets (`.env*`, signing keys), commits that
+aren't on any branch, a `git worktree lock`, or activity in the last 24h.
+
+Removal uses `git worktree remove` (never `--force`), so git re-checks
+cleanliness itself, and the **branch and its commits are kept** — recreate
+the checkout any time with `git worktree add`. Worktrees are never
+pre-selected or picked by `a`; `--apply` skips them unless you target them
+with `reclaim --apply -c git-worktrees`.
+
 ### Run history
 
 Every apply run appends a JSONL record to `~/.reclaim/logs/YYYY-MM-DD.jsonl`,
@@ -234,10 +252,11 @@ automatically, and this is the only network request `reclaim` makes.
 | **Build caches** | Gradle (incl. native), Maven, Ivy, sbt, Go build + module caches, Cargo, rustup, Bazel |
 | **Package managers** | npm (+logs), yarn (+Berry), pnpm, Bun, Deno, nvm, pip, uv, poetry, pipenv, conda, pub, gems, Composer, NuGet, Carthage, CocoaPods, Homebrew, AWS CLI, Terraform plugins, Hugging Face, Ollama, PyTorch |
 | **Project caches** | `node_modules`, `.next`, `.open-next`, `.turbo`, `.dart_tool`, `Pods`, `android/.gradle`, `__pycache__`, virtualenvs, Rust `target/` |
+| **Git worktrees** | Linked worktrees with no uncommitted work (branch kept; removed via `git worktree remove`) |
 | **IDE / Xcode** | DerivedData, iOS/watchOS/tvOS DeviceSupport, CoreSimulator caches, Xcode Previews, device logs, IPSW firmware, VS Code / Cursor / Windsurf / Zed, JetBrains, Android AVDs & stale system images, stale fvm Flutter SDKs |
 | **Testing tools** | Playwright, Cypress browser binaries |
 | **Containers** | Docker Desktop VM disk, `docker system prune`, buildx cache, Colima & Lima VMs |
-| **Browsers** | Chrome, Arc caches (won't log you out) |
+| **Browsers** | Chrome, Arc caches (won't log you out; review-first, skipped while the browser runs) |
 
 The full catalog lives in [`internal/rules/catalog.yaml`](internal/rules/catalog.yaml). Adding a
 rule is a YAML edit — no code changes required.

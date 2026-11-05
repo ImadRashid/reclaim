@@ -6,6 +6,16 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ### Added
 
+- **Git worktree cleanup** (new `git-worktrees` category): finds linked
+  worktrees via `git worktree list` in every repo under the projects folder
+  and labels each with branch, merge state, and idle time. Worktrees with
+  uncommitted/untracked changes, ignored secrets (`.env*`, signing keys),
+  commits on no branch, a lock, or activity in the last 24h are shown 🔒
+  and can't be selected. Removal goes through `git worktree remove` (never
+  `--force`) after a fresh re-check; branches and commits are kept.
+  Worktrees are opt-in: never pre-selected, skipped by `a`, and excluded
+  from `--apply` unless targeted with `-c git-worktrees`.
+
 - **Interactive scan screen**: scanning from the welcome menu or `--pick`
   now shows an animated spinner, which rule is being checked (`12/77`), a
   live tally of items and size found, elapsed time, and can be cancelled
@@ -22,6 +32,17 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ### Changed
 
+- `huggingface-cache` and `aws-cli-cache` move from `safe` to `confirm`
+  (no longer pre-selected): one means re-downloading potentially tens of GB
+  of models, the other holds cached credentials.
+
+- **Browser caches are no longer pre-selected.** `chrome-cache` and
+  `arc-cache` move from `safe` to `confirm`, so Quick clean and the picker
+  leave them alone unless you tick them. Both now skip if the browser is
+  running. `chrome-cache` is narrowed from `~/Library/Caches/Google` to
+  `~/Library/Caches/Google/Chrome` — the old path also swept Android Studio
+  and other Google app caches.
+
 - README refreshed for v0.2.0: download one-liners point at the current
   release assets, the coverage table lists the new categories and rules, and
   the roadmap section targets v0.3.
@@ -31,6 +52,16 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - `scripts/release.sh` now bumps the versioned asset names in the README
   automatically as part of the release commit.
 - ROADMAP updated: v0.2.0 marked shipped with what landed vs. slipped.
+
+### Fixed
+
+- **Sizes now reflect disk actually freed.** Scanning summed logical file
+  length, so sparse files were wildly over-reported — Docker Desktop's
+  `Docker.raw` showed ~460 GB while occupying ~32 GB. Sizes now count
+  allocated blocks and count hard-linked files once.
+- Items that disappear mid-run (e.g. a `node_modules` inside a worktree
+  removed earlier in the same run) are reported as skipped instead of
+  counted as freed.
 
 ## v0.2.0 — 2026-07-26
 

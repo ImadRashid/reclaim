@@ -30,6 +30,18 @@ func Apply(hits []scanner.Hit, ruleByID map[string]rules.Rule, onProgress func(s
 		}
 		r := ruleByID[h.RuleID]
 
+		// The scanner marks items that would lose work (e.g. a worktree with
+		// uncommitted changes). Never act on them, whatever was selected.
+		if h.Blocked != "" {
+			results = append(results, Result{
+				RuleID:  h.RuleID,
+				Path:    h.Path,
+				Skipped: true,
+				Reason:  h.Blocked,
+			})
+			continue
+		}
+
 		// Single-process check (legacy ProcessCheck): skip if the app is running.
 		if r.ProcessCheck != "" && processRunning(r.ProcessCheck) {
 			results = append(results, Result{
@@ -75,8 +87,24 @@ func Apply(hits []scanner.Hit, ruleByID map[string]rules.Rule, onProgress func(s
 			continue
 		}
 
+		if r.Action == "git-worktree-remove" {
+			results = append(results, removeWorktree(h))
+			continue
+		}
+
 		// Path-based deletion.
 		if h.Path == "" {
+			continue
+		}
+		// Already gone (e.g. it lived inside a worktree removed earlier in
+		// this run): report a skip rather than claiming the space was freed.
+		if _, err := os.Lstat(h.Path); os.IsNotExist(err) {
+			results = append(results, Result{
+				RuleID:  h.RuleID,
+				Path:    h.Path,
+				Skipped: true,
+				Reason:  "already removed",
+			})
 			continue
 		}
 		if err := CheckPathSafe(h.Path); err != nil {

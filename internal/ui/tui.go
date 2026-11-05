@@ -6,15 +6,16 @@
 //   - Bottom: help bar with keybindings
 //
 // Keys:
-//   ↑/↓/j/k  navigate
-//   space    toggle selection (or expand category)
-//   →/l      expand category
-//   ←/h      collapse category
-//   o        open the highlighted folder in Finder
-//   a        select all safe items
-//   n        select none
-//   enter    apply selected (with confirmation)
-//   q/esc    quit
+//
+//	↑/↓/j/k  navigate
+//	space    toggle selection (or expand category)
+//	→/l      expand category
+//	←/h      collapse category
+//	o        open the highlighted folder in Finder
+//	a        select all safe items
+//	n        select none
+//	enter    apply selected (with confirmation)
+//	q/esc    quit
 package ui
 
 import (
@@ -48,27 +49,27 @@ var (
 type Row struct {
 	IsCategory bool
 	CategoryID string
-	HitIndex   int  // index into Model.hits when IsCategory=false
+	HitIndex   int // index into Model.hits when IsCategory=false
 	Indent     int
 }
 
 type Model struct {
-	catalog   *rules.Catalog
-	ruleByID  map[string]rules.Rule
-	hits      []scanner.Hit
-	selected  map[int]bool // hit index -> selected
-	expanded  map[string]bool
-	rows      []Row
-	cursor    int
-	width     int
-	height    int
+	catalog    *rules.Catalog
+	ruleByID   map[string]rules.Rule
+	hits       []scanner.Hit
+	selected   map[int]bool // hit index -> selected
+	expanded   map[string]bool
+	rows       []Row
+	cursor     int
+	width      int
+	height     int
 	confirming bool
 	confirmed  bool
 	cancelled  bool
 }
 
-// New constructs a TUI model. By default, all "safe" hits are pre-selected
-// and all categories are expanded.
+// New constructs a TUI model. By default, "safe" hits are pre-selected
+// (except blocked and opt-in ones) and all categories are expanded.
 func New(catalog *rules.Catalog, hits []scanner.Hit) Model {
 	ruleByID := map[string]rules.Rule{}
 	for _, r := range catalog.Rules {
@@ -86,12 +87,24 @@ func New(catalog *rules.Catalog, hits []scanner.Hit) Model {
 	}
 	for i, h := range hits {
 		r := ruleByID[h.RuleID]
-		if r.Safety == "safe" {
+		if r.Safety == "safe" && !r.OptIn && h.Blocked == "" {
 			m.selected[i] = true
 		}
 	}
 	m.rebuildRows()
 	return m
+}
+
+// selectable reports whether a hit may be ticked at all. Blocked hits
+// (e.g. a worktree with uncommitted changes) are display-only.
+func (m Model) selectable(i int) bool {
+	return m.hits[i].Blocked == ""
+}
+
+// bulkSelectable reports whether a hit may be ticked by "select all" or a
+// category toggle: never dangerous, never blocked.
+func (m Model) bulkSelectable(i int) bool {
+	return m.selectable(i) && m.ruleByID[m.hits[i].RuleID].Safety != "dangerous"
 }
 
 // Confirmed reports whether the user pressed enter to apply.
@@ -203,14 +216,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					if anySelected {
 						delete(m.selected, i)
-					} else if m.ruleByID[h.RuleID].Safety != "dangerous" {
+					} else if m.bulkSelectable(i) {
 						m.selected[i] = true
 					}
 				}
 			} else {
 				if m.selected[row.HitIndex] {
 					delete(m.selected, row.HitIndex)
-				} else {
+				} else if m.selectable(row.HitIndex) {
 					m.selected[row.HitIndex] = true
 				}
 			}
@@ -220,8 +233,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				openInFinder(m.hits[row.HitIndex].Path)
 			}
 		case "a":
+			// Opt-in rules (git worktrees) must be picked deliberately.
 			for i, h := range m.hits {
-				if m.ruleByID[h.RuleID].Safety != "dangerous" {
+				if m.bulkSelectable(i) && !m.ruleByID[h.RuleID].OptIn {
 					m.selected[i] = true
 				}
 			}
@@ -249,7 +263,9 @@ func (m Model) View() string {
 	totalSelected := int64(0)
 	totalAll := int64(0)
 	for i, h := range m.hits {
-		totalAll += h.Size
+		if h.Blocked == "" {
+			totalAll += h.Size
+		}
 		if m.selected[i] {
 			totalSelected += h.Size
 		}
@@ -327,7 +343,9 @@ func (m Model) renderRow(row Row, isCursor bool) string {
 			if m.ruleByID[h.RuleID].Category != row.CategoryID {
 				continue
 			}
-			total += h.Size
+			if h.Blocked == "" {
+				total += h.Size
+			}
 			count++
 			if m.selected[i] {
 				selected += h.Size
@@ -343,6 +361,8 @@ func (m Model) renderRow(row Row, isCursor bool) string {
 		check := "[ ]"
 		if m.selected[row.HitIndex] {
 			check = "[✓]"
+		} else if h.Blocked != "" {
+			check = dimStyle.Render("[-]")
 		}
 		marker := safetyMarker(r.Safety)
 		path := abbreviatePath(h.Path)
@@ -352,6 +372,12 @@ func (m Model) renderRow(row Row, isCursor bool) string {
 		extra := ""
 		if h.StalenessDays >= 0 {
 			extra = " " + dimStyle.Render("("+scanner.StalenessLabel(h.StalenessDays)+")")
+		}
+		if h.Note != "" {
+			extra += " " + dimStyle.Render(h.Note)
+		}
+		if h.Blocked != "" {
+			extra += " " + dangerStyle.Render("🔒 "+h.Blocked)
 		}
 		line = fmt.Sprintf("    %s %s %-50s  %10s%s",
 			check, marker, path, formatSize(h.Size), extra)

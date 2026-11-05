@@ -13,11 +13,13 @@ import (
 
 // Hit represents a single discovered cleanable target.
 type Hit struct {
-	RuleID         string
-	Path           string
-	Size           int64
-	ProjectRoot    string // git repo root for project-* rules; "" otherwise
-	StalenessDays  int    // days since last git activity for the project; -1 if N/A
+	RuleID        string
+	Path          string
+	Size          int64
+	ProjectRoot   string // git repo root for project-* rules; main worktree for git-worktrees; "" otherwise
+	StalenessDays int    // days since last git activity for the project; -1 if N/A
+	Note          string // short status shown next to the item (e.g. "fix/foo · merged · 13d idle")
+	Blocked       string // non-empty: why this item can't be cleaned; UI and engine refuse it
 }
 
 // ExpandHome expands a leading ~ to the user's home directory.
@@ -29,10 +31,15 @@ func ExpandHome(p string) string {
 	return p
 }
 
-// DirSize sums file sizes under a directory tree.
-// It silently skips files we can't stat (e.g. macOS-protected).
+// DirSize reports how much disk space a directory tree occupies — i.e. what
+// deleting it would actually free. It counts allocated blocks rather than
+// logical file length, so sparse files (Docker.raw, VM disk images) report
+// their real footprint instead of their nominal size, and it counts each
+// hard-linked file once. Files we can't stat (e.g. macOS-protected) are
+// silently skipped.
 func DirSize(root string) int64 {
 	var total int64
+	seen := map[fileID]bool{}
 	_ = filepath.WalkDir(root, func(_ string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -44,7 +51,14 @@ func DirSize(root string) int64 {
 		if err != nil {
 			return nil
 		}
-		total += info.Size()
+		size, id, linked := diskUsage(info)
+		if linked {
+			if seen[id] {
+				return nil
+			}
+			seen[id] = true
+		}
+		total += size
 		return nil
 	})
 	return total
@@ -95,6 +109,8 @@ func scanRule(r rules.Rule) []Hit {
 		return scanPattern(r)
 	case "command":
 		return scanCommandRule(r)
+	case "git-worktrees":
+		return scanWorktrees(r)
 	}
 	return nil
 }

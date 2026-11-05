@@ -35,13 +35,13 @@ import (
 var version = "0.2.0"
 
 type opts struct {
-	apply     bool
-	plain     bool
-	pick      bool
-	category  string
-	wantHelp  bool
-	wantVer   bool
-	noUpdate  bool
+	apply    bool
+	plain    bool
+	pick     bool
+	category string
+	wantHelp bool
+	wantVer  bool
+	noUpdate bool
 }
 
 func main() {
@@ -207,7 +207,7 @@ func runApply(cat *rules.Catalog, ruleByID map[string]rules.Rule, category strin
 		fmt.Println("Nothing to clean. Your system is tidy. ✨")
 		return
 	}
-	runNonInteractiveApply(hits, ruleByID, false /* not safe-only; includes confirm */)
+	runNonInteractiveApply(hits, ruleByID, false /* not safe-only; includes confirm */, category)
 }
 
 // runApplySafeOnly is the "Quick clean (safe defaults)" menu choice.
@@ -222,7 +222,7 @@ func runApplySafeOnly(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
 		fmt.Println("Nothing to clean. Your system is tidy. ✨")
 		return
 	}
-	runNonInteractiveApply(hits, ruleByID, true /* safe only */)
+	runNonInteractiveApply(hits, ruleByID, true /* safe only */, "")
 }
 
 // runScan is the plain-text scan used by the script-friendly modes
@@ -258,12 +258,17 @@ func filterByCategory(hits []scanner.Hit, ruleByID map[string]rules.Rule, cat st
 
 // runNonInteractiveApply deletes hits after a single y/N prompt.
 // If safeOnly is true, only safety=safe is considered; otherwise safe + confirm.
-func runNonInteractiveApply(hits []scanner.Hit, ruleByID map[string]rules.Rule, safeOnly bool) {
+// Blocked hits are always left alone, and opt-in rules (git worktrees) are
+// included only when their category was explicitly targeted with -c.
+func runNonInteractiveApply(hits []scanner.Hit, ruleByID map[string]rules.Rule, safeOnly bool, category string) {
 	var toClean []scanner.Hit
 	var total int64
 	for _, h := range hits {
 		r := ruleByID[h.RuleID]
-		if r.Safety == "dangerous" {
+		if r.Safety == "dangerous" || h.Blocked != "" {
+			continue
+		}
+		if r.OptIn && r.Category != category {
 			continue
 		}
 		if safeOnly && r.Safety != "safe" {
@@ -343,9 +348,7 @@ func printReport(cat *rules.Catalog, hits []scanner.Hit, ruleByID map[string]rul
 		}
 		var catTotal int64
 		for _, hs := range g.ruleHits {
-			for _, h := range hs {
-				catTotal += h.Size
-			}
+			catTotal += totalSize(hs)
 		}
 		grandTotal += catTotal
 		fmt.Printf("\033[1;36m▸ %s — %s\033[0m\n", g.category.Name, formatSize(catTotal))
@@ -361,16 +364,18 @@ func printReport(cat *rules.Catalog, hits []scanner.Hit, ruleByID map[string]rul
 			hs := g.ruleHits[rid]
 			marker := safetyMarker(r.Safety)
 			fmt.Printf("    %s  %-32s  %10s  %s\n", marker, rid, formatSize(totalSize(hs)), shortDesc(r.Description))
+			// Rules with per-item status (worktrees) list every item; the
+			// status is the point. Others show the first few.
 			limit := 3
-			if len(hs) <= limit {
-				for _, h := range hs {
-					fmt.Printf("        · %s (%s)\n", abbreviatePath(h.Path), formatSize(h.Size))
+			if hs[0].Note != "" || hs[0].Blocked != "" {
+				limit = len(hs)
+			}
+			for i, h := range hs {
+				if i == limit {
+					fmt.Printf("        · …and %d more\n", len(hs)-limit)
+					break
 				}
-			} else {
-				for _, h := range hs[:limit] {
-					fmt.Printf("        · %s (%s)\n", abbreviatePath(h.Path), formatSize(h.Size))
-				}
-				fmt.Printf("        · …and %d more\n", len(hs)-limit)
+				fmt.Printf("        · %s (%s)%s\n", abbreviatePath(h.Path), formatSize(h.Size), hitStatus(h))
 			}
 		}
 		fmt.Println()
@@ -379,12 +384,27 @@ func printReport(cat *rules.Catalog, hits []scanner.Hit, ruleByID map[string]rul
 	fmt.Println("Legend:  ✓ safe   ⚠ confirm   ✗ dangerous")
 }
 
+// totalSize sums reclaimable size; blocked hits can't be cleaned, so they
+// don't count toward what reclaim reports as freeable.
 func totalSize(hs []scanner.Hit) int64 {
 	var t int64
 	for _, h := range hs {
-		t += h.Size
+		if h.Blocked == "" {
+			t += h.Size
+		}
 	}
 	return t
+}
+
+func hitStatus(h scanner.Hit) string {
+	s := ""
+	if h.Note != "" {
+		s += "  \033[2m" + h.Note + "\033[0m"
+	}
+	if h.Blocked != "" {
+		s += "  \033[31m🔒 " + h.Blocked + "\033[0m"
+	}
+	return s
 }
 
 func safetyMarker(s string) string {

@@ -18,6 +18,10 @@ categories:
     name: Project build artifacts
     description: Per-project build output and dependency folders
 
+  - id: git-worktrees
+    name: Git worktrees
+    description: Linked worktrees with no uncommitted work (branches and commits are kept)
+
   - id: ide-caches
     name: IDE & editor caches
     description: Build output and indexes from IDEs (Xcode, VS Code, JetBrains)
@@ -278,6 +282,25 @@ rules:
     description: Rust build output (target/) — only deleted next to Cargo.toml
     detect: scan
 
+  # ---------- Git worktrees ----------
+  # Found via `git worktree list` in every repo under scan_root, so worktrees
+  # living outside it (e.g. sibling folders) are covered too. Anything with
+  # uncommitted or untracked changes, ignored secrets (.env*, signing keys),
+  # commits on no branch, a lock, or activity in the last 24h is shown but
+  # can't be selected. Removal is `git worktree remove` (never --force),
+  # which keeps the branch and re-checks cleanliness itself. opt_in keeps
+  # it out of --apply / "select all" unless targeted with -c git-worktrees.
+  - id: git-worktrees
+    category: git-worktrees
+    scan_root: ~/Desktop/Projects
+    scan_max_depth: 4
+    safety: confirm
+    regenerates: false
+    opt_in: true
+    action: git-worktree-remove
+    description: Linked git worktree. Branch and commits are kept; recreate with git worktree add.
+    detect: git-worktrees
+
   # ---------- IDE / Xcode ----------
   - id: xcode-derived-data
     category: ide-caches
@@ -346,22 +369,28 @@ rules:
     detect: dir-exists
 
   # ---------- Browsers ----------
+  # Browser caches are `confirm`, not `safe`: wiping them makes every site
+  # cold-load, and deleting under a running browser can corrupt its cache
+  # index. Paths are scoped to the browser's own folder — the parent
+  # ~/Library/Caches/Google also holds Android Studio and other Google apps.
   - id: chrome-cache
     category: browser-caches
     paths:
-      - ~/Library/Caches/Google
-    safety: safe
+      - ~/Library/Caches/Google/Chrome
+    safety: confirm
     regenerates: true
-    description: Chrome cache (asset cache only — does NOT log you out)
+    warn_if_running: ["Google Chrome"]
+    description: Chrome asset cache (does not log you out). Quit Chrome first.
     detect: dir-exists
 
   - id: arc-cache
     category: browser-caches
     paths:
       - ~/Library/Caches/Arc
-    safety: safe
+    safety: confirm
     regenerates: true
-    description: Arc browser cache
+    warn_if_running: ["Arc"]
+    description: Arc browser cache. Quit Arc first.
     detect: dir-exists
 
   # ---------- AI / ML ----------
@@ -369,7 +398,7 @@ rules:
     category: package-caches
     paths:
       - ~/.cache/huggingface
-    safety: safe
+    safety: confirm
     regenerates: true
     description: Hugging Face downloaded models (large — re-downloaded on demand)
     detect: dir-exists
@@ -621,7 +650,7 @@ rules:
     category: package-caches
     paths:
       - ~/.aws/cli/cache
-    safety: safe
+    safety: confirm
     regenerates: true
     description: AWS CLI SSO/role cache
     detect: dir-exists

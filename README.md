@@ -79,28 +79,28 @@ your `$PATH`. One-line installer:
 
 ```sh
 # Apple Silicon (M1/M2/M3/M4)
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_darwin_arm64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.3.0_darwin_arm64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.2.0_darwin_arm64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.2.0_darwin_arm64
+  && sudo install -m 0755 reclaim_v0.3.0_darwin_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.3.0_darwin_arm64
 
 # Intel Mac
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_darwin_amd64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.3.0_darwin_amd64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.2.0_darwin_amd64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.2.0_darwin_amd64
+  && sudo install -m 0755 reclaim_v0.3.0_darwin_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.3.0_darwin_amd64
 
 # Linux ARM64
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_linux_arm64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.3.0_linux_arm64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.2.0_linux_arm64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.2.0_linux_arm64
+  && sudo install -m 0755 reclaim_v0.3.0_linux_arm64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.3.0_linux_arm64
 
 # Linux AMD64
-curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.2.0_linux_amd64.tar.gz \
+curl -fsSL https://github.com/ImadRashid/reclaim/releases/latest/download/reclaim_v0.3.0_linux_amd64.tar.gz \
   | tar -xz \
-  && sudo install -m 0755 reclaim_v0.2.0_linux_amd64/reclaim /usr/local/bin/reclaim \
-  && rm -rf reclaim_v0.2.0_linux_amd64
+  && sudo install -m 0755 reclaim_v0.3.0_linux_amd64/reclaim /usr/local/bin/reclaim \
+  && rm -rf reclaim_v0.3.0_linux_amd64
 ```
 
 Then run `reclaim` from anywhere.
@@ -126,8 +126,8 @@ download the archive for your platform, double-click to extract, and drag the
 Each release also publishes `.sha256` sidecar files. To verify integrity:
 
 ```sh
-shasum -a 256 reclaim_v0.2.0_darwin_arm64.tar.gz
-# Compare against the value in reclaim_v0.2.0_darwin_arm64.tar.gz.sha256
+shasum -a 256 reclaim_v0.3.0_darwin_arm64.tar.gz
+# Compare against the value in reclaim_v0.3.0_darwin_arm64.tar.gz.sha256
 ```
 
 ### Build from source (only if you want to)

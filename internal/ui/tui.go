@@ -61,6 +61,7 @@ type Model struct {
 	expanded   map[string]bool
 	rows       []Row
 	cursor     int
+	offset     int // first visible row; moves only when the cursor would leave the window
 	width      int
 	height     int
 	confirming bool
@@ -155,7 +156,42 @@ func (m *Model) rebuildRows() {
 
 func (m Model) Init() tea.Cmd { return nil }
 
+// listHeight is how many rows fit between the header and the help bar.
+func (m Model) listHeight() int {
+	h := m.height - 9 // title, totals, scroll indicator, help
+	if h < 5 {
+		h = 5
+	}
+	return h
+}
+
+// clampScroll keeps the cursor inside the visible window, scrolling only
+// when the cursor reaches an edge (like a text cursor), and never leaves
+// blank space below the last row.
+func (m *Model) clampScroll() {
+	lh := m.listHeight()
+	if m.cursor < m.offset {
+		m.offset = m.cursor
+	}
+	if m.cursor >= m.offset+lh {
+		m.offset = m.cursor - lh + 1
+	}
+	if maxOff := len(m.rows) - lh; m.offset > maxOff {
+		m.offset = maxOff
+	}
+	if m.offset < 0 {
+		m.offset = 0
+	}
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	next, cmd := m.update(msg)
+	nm := next.(Model)
+	nm.clampScroll()
+	return nm, cmd
+}
+
+func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -274,15 +310,9 @@ func (m Model) View() string {
 		totalStyle.Render(formatSize(totalSelected)),
 		dimStyle.Render(formatSize(totalAll))))
 
-	// Calculate visible window for scrolling.
-	listHeight := m.height - 9 // account for title, totals, scroll indicator, help
-	if listHeight < 5 {
-		listHeight = 5
-	}
-	start := 0
-	if m.cursor >= listHeight {
-		start = m.cursor - listHeight + 1
-	}
+	// Visible window; m.offset is maintained by clampScroll in Update.
+	listHeight := m.listHeight()
+	start := m.offset
 	end := start + listHeight
 	if end > len(m.rows) {
 		end = len(m.rows)
@@ -366,21 +396,33 @@ func (m Model) renderRow(row Row, isCursor bool) string {
 		}
 		marker := safetyMarker(r.Safety)
 		path := abbreviatePath(h.Path)
+		size := formatSize(h.Size)
+		if h.Path == "" {
+			// Command rules have no folder or measurable size; show what runs.
+			path = "runs: " + commandOf(r)
+			size = "—"
+		}
 		if len(path) > 50 {
 			path = "…" + path[len(path)-49:]
 		}
+		// The lock reason goes first: if the row is too wide for the
+		// terminal, it's the part that must stay visible.
 		extra := ""
+		if h.Blocked != "" {
+			extra += " " + dangerStyle.Render("🔒 "+h.Blocked)
+		}
 		if h.StalenessDays >= 0 {
-			extra = " " + dimStyle.Render("("+scanner.StalenessLabel(h.StalenessDays)+")")
+			extra += " " + dimStyle.Render("("+scanner.StalenessLabel(h.StalenessDays)+")")
 		}
 		if h.Note != "" {
 			extra += " " + dimStyle.Render(h.Note)
 		}
-		if h.Blocked != "" {
-			extra += " " + dangerStyle.Render("🔒 "+h.Blocked)
-		}
 		line = fmt.Sprintf("    %s %s %-50s  %10s%s",
-			check, marker, path, formatSize(h.Size), extra)
+			check, marker, path, size, extra)
+	}
+	// Clip to the terminal instead of letting the row wrap or run off-screen.
+	if m.width > 0 {
+		line = lipgloss.NewStyle().MaxWidth(m.width).Render(line)
 	}
 	if isCursor {
 		line = selectedStyle.Render(strings.TrimRight(line, " "))
@@ -395,6 +437,14 @@ func (m Model) findCategory(id string) rules.Category {
 		}
 	}
 	return rules.Category{ID: id, Name: id}
+}
+
+// commandOf returns the shell command a pathless rule runs.
+func commandOf(r rules.Rule) string {
+	if r.ActionCommand != "" {
+		return r.ActionCommand
+	}
+	return r.Cmd
 }
 
 func safetyMarker(s string) string {

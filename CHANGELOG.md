@@ -2,6 +2,23 @@
 
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- **Picker scrolling behaves like a cursor.** Moving up from the bottom of
+  the list no longer drags the whole view with it; the window only scrolls
+  when the cursor reaches its top or bottom edge.
+- **Empty (0 B) items are no longer listed** — e.g. symlink-only
+  `node_modules` in pnpm workspaces. Deleting them freed nothing and they
+  buried the items that matter.
+- Picker rows are clipped to the terminal width, with a 🔒 lock reason
+  shown first so it's never the part cut off.
+- Command-based rules (`docker system prune`, `xcrun simctl delete
+  unavailable`) show the command they run instead of a blank path and "0 B".
+- `--plain` / `--apply` print scan progress only on a terminal; piped
+  output no longer gets one long run-on line of rule IDs.
+
 ## v0.3.0 — 2026-11-05
 
 ### Added

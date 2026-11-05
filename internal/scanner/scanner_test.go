@@ -1,10 +1,13 @@
 package scanner
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ImadRashid/reclaim/internal/rules"
 )
 
 func TestExpandHome(t *testing.T) {
@@ -82,5 +85,37 @@ func TestStalenessLabel(t *testing.T) {
 		if got := StalenessLabel(days); got != want {
 			t.Errorf("StalenessLabel(%d) = %q, want %q", days, got, want)
 		}
+	}
+}
+
+func TestDropEmpty_KeepsCommandHitsAndNonEmptyPaths(t *testing.T) {
+	in := []Hit{
+		{RuleID: "empty", Path: "/empty", Size: 0},
+		{RuleID: "full", Path: "/full", Size: 4096},
+		{RuleID: "docker-system-prune"}, // pathless command hit
+	}
+	got := dropEmpty(in)
+	if len(got) != 2 || got[0].RuleID != "full" || got[1].RuleID != "docker-system-prune" {
+		t.Fatalf("dropEmpty = %+v, want [full, docker-system-prune]", got)
+	}
+}
+
+func TestScan_OmitsEmptyDirectories(t *testing.T) {
+	dir := t.TempDir()
+	empty := filepath.Join(dir, "empty")
+	full := filepath.Join(dir, "full")
+	if err := os.MkdirAll(empty, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(full, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(full, "f"), []byte("data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cat := &rules.Catalog{Rules: []rules.Rule{{ID: "r", Detect: "dir-exists", Paths: []string{empty, full}}}}
+	hits := Scan(context.Background(), cat, nil)
+	if len(hits) != 1 || hits[0].Path != full {
+		t.Fatalf("Scan = %+v, want only %s", hits, full)
 	}
 }

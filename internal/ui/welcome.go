@@ -14,12 +14,12 @@ import (
 type MenuChoice int
 
 const (
-	ChoiceNone MenuChoice = iota // user quit without picking
-	ChoiceScanAndPick                // open the full TUI
-	ChoiceQuickCleanSafe             // scan + delete safe items + summary
-	ChoiceBrowseByCategory           // pick a category, then scan that one only
-	ChoiceLastLog                    // show the last cleanup log
-	ChoiceAbout                      // show keys / safety / docs
+	ChoiceNone             MenuChoice = iota // user quit without picking
+	ChoiceScanAndPick                        // open the full TUI
+	ChoiceQuickCleanSafe                     // scan + delete safe items + summary
+	ChoiceBrowseByCategory                   // pick a category, then scan that one only
+	ChoiceLastLog                            // show the last cleanup log
+	ChoiceAbout                              // show keys / safety / docs
 )
 
 // menuItem is one row in the welcome menu.
@@ -43,7 +43,7 @@ type WelcomeModel struct {
 	cursor       int
 	chosen       MenuChoice
 	cancelled    bool
-	categoryView bool        // when true, we're in the second menu (categories)
+	categoryView bool // when true, we're in the second menu (categories)
 	categories   []rules.Category
 	pickedCat    string
 }

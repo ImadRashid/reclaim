@@ -229,10 +229,16 @@ func runApplySafeOnly(cat *rules.Catalog, ruleByID map[string]rules.Rule) {
 // (--plain, --apply). Interactive modes use runScanTUI instead.
 func runScan(cat *rules.Catalog) []scanner.Hit {
 	fmt.Printf("\033[1m🧹 reclaim v%s\033[0m — scanning…\n", version)
-	hits := scanner.Scan(context.Background(), cat, func(id string) {
-		fmt.Printf("\r  %-50s", id)
-	})
-	fmt.Print("\r" + strings.Repeat(" ", 60) + "\r")
+	// The \r-overwritten progress line only makes sense on a terminal;
+	// piped into a file or another program it becomes one long run-on line.
+	var progress func(string)
+	if fi, err := os.Stdout.Stat(); err == nil && fi.Mode()&os.ModeCharDevice != 0 {
+		progress = func(id string) { fmt.Printf("\r  %-50s", id) }
+	}
+	hits := scanner.Scan(context.Background(), cat, progress)
+	if progress != nil {
+		fmt.Print("\r" + strings.Repeat(" ", 60) + "\r")
+	}
 	return hits
 }
 
@@ -375,6 +381,10 @@ func printReport(cat *rules.Catalog, hits []scanner.Hit, ruleByID map[string]rul
 					fmt.Printf("        · …and %d more\n", len(hs)-limit)
 					break
 				}
+				if h.Path == "" {
+					fmt.Printf("        · runs: %s\n", commandOf(r))
+					continue
+				}
 				fmt.Printf("        · %s (%s)%s\n", abbreviatePath(h.Path), formatSize(h.Size), hitStatus(h))
 			}
 		}
@@ -394,6 +404,13 @@ func totalSize(hs []scanner.Hit) int64 {
 		}
 	}
 	return t
+}
+
+func commandOf(r rules.Rule) string {
+	if r.ActionCommand != "" {
+		return r.ActionCommand
+	}
+	return r.Cmd
 }
 
 func hitStatus(h scanner.Hit) string {

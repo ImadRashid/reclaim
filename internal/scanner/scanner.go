@@ -90,7 +90,7 @@ func ScanEvents(ctx context.Context, cat *rules.Catalog, onRule func(ruleID stri
 			return hits
 		default:
 		}
-		found := scanRule(r)
+		found := dropEmpty(scanRule(r))
 		if len(found) > 0 {
 			hits = append(hits, found...)
 			if onHits != nil {
@@ -99,6 +99,21 @@ func ScanEvents(ctx context.Context, cat *rules.Catalog, onRule func(ruleID stri
 		}
 	}
 	return hits
+}
+
+// dropEmpty removes path hits that occupy no disk space (empty dirs,
+// symlink-only node_modules): deleting them frees nothing, and they bury the
+// items that matter. Pathless command hits (docker system prune, simctl)
+// always report 0 B, so they're kept.
+func dropEmpty(hits []Hit) []Hit {
+	out := hits[:0]
+	for _, h := range hits {
+		if h.Path != "" && h.Size == 0 {
+			continue
+		}
+		out = append(out, h)
+	}
+	return out
 }
 
 func scanRule(r rules.Rule) []Hit {

@@ -178,7 +178,17 @@ Slipped to v0.3: Metro / Expo caches, pyenv versions, per-version Xcode
 simulator runtime cleanup, conda *environments* (only the package cache
 shipped), free-space delta in the summary.
 
-### v0.3.0 — productization
+### v0.3.0 — worktrees & honest sizes ✅
+
+Shipped: git worktree cleanup (`git-worktrees` category, opt-in, removed
+via `git worktree remove` with work-loss checks), sizes based on allocated
+blocks (sparse `Docker.raw` no longer over-reported), interactive scan
+screen, once-daily update check, and browser / Hugging Face / AWS CLI
+caches moved to `confirm` (no longer pre-selected).
+
+### v0.4.0 — productization
+
+Carried over from the v0.3 plan:
 
 - Per-project view in TUI
 - `--trash` mode (opt-in soft delete)
@@ -195,7 +205,7 @@ shipped), free-space delta in the summary.
   `go-module-cache` should use `action: shell` + `go clean -modcache`
   (read-only file modes break plain `os.RemoveAll`)
 
-### v0.4.0+ — optional / community-driven
+### v0.5.0+ — optional / community-driven
 
 - Linux rule pack
 - Ruby, PHP, .NET, Unity, Terraform, K8s
